@@ -2,6 +2,8 @@
 
 This repository contains three Jupyter notebooks for exploring satellite and weather data and running crop classification experiments using STATT and WSTATT models.
 
+Preprocessed data is present at: https://drive.google.com/drive/folders/1HSUD74s6N7xoIyRlrflxsV5nZ4mnEFTX?usp=drive_link
+
 ## Repository Contents
 
 ```text
