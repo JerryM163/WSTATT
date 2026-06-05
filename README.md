@@ -200,6 +200,16 @@ This repository is prepared for experiments with STATT and WSTATT-style spatio-t
 If you use this repository, please cite the following papers:
 
 ```bibtex
+@inproceedings{ravirathinam2024wstatt,
+  title={Combining Satellite and Weather Data for Crop Type Mapping: An Inverse Modelling Approach},
+  author={Ravirathinam, Praveen and Ghosh, Rahul and Khandelwal, Ankush and Jia, Xiaowei and Mulla, David and Kumar, Vipin},
+  booktitle={Proceedings of the 2024 SIAM International Conference on Data Mining},
+  pages={445--453},
+  year={2024},
+  publisher={SIAM},
+  doi={10.1137/1.9781611978032.52}
+}
+
 @inproceedings{ghosh2021statt,
   title={Attention-augmented Spatio-Temporal Segmentation for Land Cover Mapping},
   author={Ghosh, Rahul and Ravirathinam, Praveen and Jia, Xiaowei and Lin, Chenxi and Jin, Zhenong and Kumar, Vipin},
@@ -210,13 +220,5 @@ If you use this repository, please cite the following papers:
   doi={10.1109/BigData52589.2021.9671974}
 }
 
-@inproceedings{ravirathinam2024wstatt,
-  title={Combining Satellite and Weather Data for Crop Type Mapping: An Inverse Modelling Approach},
-  author={Ravirathinam, Praveen and Ghosh, Rahul and Khandelwal, Ankush and Jia, Xiaowei and Mulla, David and Kumar, Vipin},
-  booktitle={Proceedings of the 2024 SIAM International Conference on Data Mining},
-  pages={445--453},
-  year={2024},
-  publisher={SIAM},
-  doi={10.1137/1.9781611978032.52}
-}
+
 ```
