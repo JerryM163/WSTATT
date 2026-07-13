@@ -29,9 +29,9 @@ def create_weather_satellite_patches(grid):
     Returns:
         (image_patches, weather_patches, label_patches) - Numpy arrays of image, weather, and label patches
     '''
-    image = np.load(os.path.join(sat_data_dir, grid, "_image.npy"))
-    label = np.load(os.path.join(eroded_label_data_dir, grid, "_image.npy"))
-    weather = np.load(os.path.join(weather_data_dir, grid, "_image.npy"))
+    image = np.load(os.path.join(sat_data_dir, grid + "_image.npy"))
+    label = np.load(os.path.join(eroded_label_data_dir, grid + "_label.npy"))
+    weather = np.load(os.path.join(weather_data_dir, grid + "_daymet_10980_global_normalised_year_day_average_grid_array.npy"))
 
     # Replace NaN values in the weather data to prevent future issues
     weather[np.isnan(weather)] = 0
