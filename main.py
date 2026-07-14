@@ -37,7 +37,7 @@ if __name__ == "__main__":
 
     for model in models:
         print("#######################################################################")
-        print(f"TRAINING {model} MODEL")
+        print(f"TRAINING {str(model)} MODEL")
         model = model.to(device)
 
         criterion = torch.nn.CrossEntropyLoss(ignore_index=unknown_class)
