@@ -200,7 +200,8 @@ class STATT(torch.nn.Module):
 
         return out
 
-    import torch
+    def __str__():
+        return "Baseline STATT Model"
 
 class WSTATT(torch.nn.Module):
     def __init__(self, in_channels, in_channels_w, out_channels):
@@ -364,3 +365,6 @@ class WSTATT(torch.nn.Module):
         # Output layer
         out = self.out(upconv1)  # Final 1x1 convolution
         return out
+
+    def __str__():
+        return "Baseline WSTATT Model"
