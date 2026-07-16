@@ -1,6 +1,5 @@
 import os
 import numpy as np
-import random
 import glob
 import matplotlib.pyplot as plt
 import matplotlib.colors
@@ -23,15 +22,6 @@ weather_data_dir = Path(r"../WSTATT_DATA/WEATHER/DAYMET")
 
 input_patch_size = 32
 output_patch_size = 32
-
-# List of all possible grid names in the google drive folder, based on their naming conventions
-dataset = [
-    f"T11SKA_{year}_{first_digit}_{second_digit}"
-    for year in (2018, 2019, 2020)
-    for first_digit in range(10)
-    for second_digit in range(10)
-]
-
 
 class SEGMENTATION(Dataset):
     """Custom PyTorch Dataset for satellite image patches with weather data.
@@ -146,13 +136,6 @@ def create_patches(grid):
     label_patches = np.array(label_patches).astype(np.int8)        # Shape: [num_patches, H, W]
 
     return image_patches, weather_patches, label_patches
-
-def get_random_sample():
-    '''
-    Returns:
-        A randomized sample of the grid names in the dataset (eg. T11SKA_2018_0_0)
-    '''
-    return random.sample(dataset, len(dataset))
 
 def get_data_loader(grid, batch_size):
     '''

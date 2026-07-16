@@ -1,3 +1,5 @@
+import random
+
 from device import device
 from Models.baseline import STATT, WSTATT
 from data import get_random_sample, get_data_loader
@@ -16,6 +18,14 @@ if __name__ == "__main__":
     input_patch_size = 32
     output_patch_size = 32
     batch_size = 16
+
+    # List of all possible grid names in the google drive folder, based on their naming conventions
+    datasets = [
+        f"T11SKA_{year}_{first_digit}_{second_digit}"
+        for year in (2018, 2019, 2020)
+        for first_digit in range(10)
+        for second_digit in range(10)
+    ]
 
     print("########## BUILDING MODELS ##########")
     statt = STATT(
@@ -43,7 +53,7 @@ if __name__ == "__main__":
     wstatt_train_loss = []
 
     for epoch in range(num_epochs):
-        print(f'## Training EPOCH {epoch} ##')
+        print(f'\tTraining EPOCH {epoch} ##')
 
         statt.train()
         wstatt.train()
@@ -51,9 +61,10 @@ if __name__ == "__main__":
         statt_epoch_loss = 0
         wstatt_epoch_loss = 0
 
-        dataset = get_random_sample()
+        dataset = random.sample(datasets, 1)
 
         for grid_num, grid in enumerate(dataset):
+            print(f'\r\t\tGRID {grid} {grid_num + 1}', end="")
             data_loader = get_data_loader(grid, batch_size)
 
             statt_grid_loss = 0
