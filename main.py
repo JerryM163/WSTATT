@@ -2,7 +2,7 @@ import random
 
 from device import device
 from Models.baseline import STATT, WSTATT
-from data import get_random_sample, get_data_loader
+from data import get_data_loader
 
 import torch
 
@@ -32,13 +32,13 @@ if __name__ == "__main__":
         in_channels=in_channels,
         out_channels=out_channels
     )
-    print("## STATT model complete ##")
+    print(f"\tSTATT Model Complete")
     wstatt = WSTATT(
         in_channels=in_channels,
         in_channels_w=in_channels_weather,
         out_channels=out_channels
     )
-    print("## WSTATT model complete ##")
+    print(f"\tWSTATT Model Complete")
 
     print("########## TRAINING MODELS ##########")
     statt = statt.to(device)
@@ -64,7 +64,7 @@ if __name__ == "__main__":
         dataset = random.sample(datasets, 1)
 
         for grid_num, grid in enumerate(dataset):
-            print(f'\r\t\tGRID {grid} {grid_num + 1}', end="")
+            print(f'\r\t\tTraining GRID {grid} {grid_num + 1}', end="")
             data_loader = get_data_loader(grid, batch_size)
 
             statt_grid_loss = 0
@@ -93,16 +93,16 @@ if __name__ == "__main__":
                 statt_grid_loss += statt_batch_loss.item()
                 wstatt_grid_loss += wstatt_batch_loss.item()
 
-            statt_grid_avg = statt_grid_loss / (batch + 1) 
-            wstatt_grid_avg = wstatt_grid_loss / (batch + 1)
-            print(f'\t({grid_num}) Loss for grid {grid}: STATT {statt_grid_avg}, WSTATT {wstatt_grid_avg}')
+            statt_grid_loss_avg = statt_grid_loss / (batch + 1) 
+            wstatt_grid_loss_avg = wstatt_grid_loss / (batch + 1)
+            print(f'\t\tLoss for GRID {grid}: STATT {statt_grid_loss_avg}, WSTATT {wstatt_grid_loss_avg}')
 
             statt_epoch_loss += statt_grid_loss
             wstatt_epoch_loss += wstatt_grid_loss
 
         statt_epoch_loss_avg = statt_epoch_loss / (grid_num + 1)
         wstatt_epoch_loss_avg = wstatt_epoch_loss / (grid_num + 1)
-        print(f'\Train loss for: STATT {statt_epoch_loss_avg}, WSTATT {wstatt_epoch_loss_avg}')
+        print(f'\tLoss for EPOCH {epoch}: STATT {statt_epoch_loss_avg}, WSTATT {wstatt_epoch_loss_avg}')
 
         statt_train_loss.append(statt_epoch_loss_avg)
         wstatt_train_loss.append(wstatt_epoch_loss_avg)
