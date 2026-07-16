@@ -1,8 +1,3 @@
-from random import random
-from shutil import ignore_patterns
-
-from torch import optim
-
 from device import device
 from Models.baseline import STATT, WSTATT
 from data import get_random_sample, get_data_loader
