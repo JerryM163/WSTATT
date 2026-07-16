@@ -10,12 +10,11 @@ os.environ["LD_LIBRARY_PATH"] = f"{conda_lib}:/lib64"
 sys.path.insert(0, conda_lib)
 
 import random
-
+import torch
 from Models.baseline import STATT, WSTATT
 from data import get_data_loader
 
-import torch
-
+torch.backends.cudnn.enabled = False
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 print("Active Device Status:", "cuda" if torch.cuda.is_available() else "cpu")
 
