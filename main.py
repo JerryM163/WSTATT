@@ -1,11 +1,5 @@
 import os
 import sys
-import random
-
-from Models.baseline import STATT, WSTATT
-from data import get_data_loader
-
-import torch
 
 # Drop the cluster's default library injection tracking completely
 os.environ.pop("LD_LIBRARY_PATH", None)
@@ -14,6 +8,13 @@ os.environ.pop("LD_LIBRARY_PATH", None)
 conda_lib = "/users/0/hinsv006/miniconda3/envs/carson/lib"
 os.environ["LD_LIBRARY_PATH"] = f"{conda_lib}:/lib64"
 sys.path.insert(0, conda_lib)
+
+import random
+
+from Models.baseline import STATT, WSTATT
+from data import get_data_loader
+
+import torch
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 print("Active Device Status:", "cuda" if torch.cuda.is_available() else "cpu")
