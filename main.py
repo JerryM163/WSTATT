@@ -63,29 +63,37 @@ if __name__ == "__main__":
                 statt_optim.zero_grad()
                 wstatt_optim.zero_grad()
 
-                statt_out = statt(image_patch.to(device))
-                wstatt_out = wstatt(image_patch.to(device), weather_patch.to(device))
-
+                image_tensor = image_patch.to(device)
+                weather_tensor = weather_patch.to(device)
                 label_patch = label_patch.type(torch.long).to(device)
+
+                statt_out = statt(image_tensor)
+                wstatt_out = wstatt(image_tensor, weather_tensor)
 
                 statt_batch_loss = criterion(statt_out, label_patch)
                 wstatt_batch_loss = criterion(wstatt_out, label_patch)
 
-                statt_batch_loss.backward(), wstatt_batch_loss.backward()
-                statt_optim.step(), wstatt_optim.step()
+                statt_batch_loss.backward()
+                wstatt_batch_loss.backward()
+
+                statt_optim.step()
+                wstatt_optim.step()
 
                 statt_grid_loss += statt_batch_loss.item()
                 wstatt_grid_loss += wstatt_batch_loss.item()
 
-            statt_grid_loss = statt_grid_loss / (batch + 1) 
-            wstatt_grid_loss = wstatt_grid_loss / (batch + 1)
-            print(f'\t({grid_num}) Loss for grid {grid}: STATT {statt_grid_loss}, WSTATT {wstatt_grid_loss}')
+            statt_grid_avg = statt_grid_loss / (batch + 1) 
+            wstatt_grid_avg = wstatt_grid_loss / (batch + 1)
+            print(f'\t({grid_num}) Loss for grid {grid}: STATT {statt_grid_avg}, WSTATT {wstatt_grid_avg}')
+
             statt_epoch_loss += statt_grid_loss
             wstatt_epoch_loss += wstatt_grid_loss
 
-        statt_epoch_loss = statt_epoch_loss / (grid_num + 1)
-        wstatt_epoch_loss = wstatt_epoch_loss / (grid_num + 1)
-        print(f'\Train loss for: STATT {statt_epoch_loss}, WSTATT {wstatt_epoch_loss}')
+        statt_epoch_loss_avg = statt_epoch_loss / (grid_num + 1)
+        wstatt_epoch_loss_avg = wstatt_epoch_loss / (grid_num + 1)
+        print(f'\Train loss for: STATT {statt_epoch_loss_avg}, WSTATT {wstatt_epoch_loss_avg}')
 
-        statt_train_loss.append(statt_epoch_loss)
-        wstatt_train_loss.append(wstatt_epoch_loss)
+        statt_train_loss.append(statt_epoch_loss_avg)
+        wstatt_train_loss.append(wstatt_epoch_loss_avg)
+
+    # print("########## VALIDATING MODELS ##########")
