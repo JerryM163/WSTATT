@@ -1,10 +1,22 @@
+import os
+import sys
 import random
 
-from device import device
 from Models.baseline import STATT, WSTATT
 from data import get_data_loader
 
 import torch
+
+# Drop the cluster's default library injection tracking completely
+os.environ.pop("LD_LIBRARY_PATH", None)
+
+# Force the environment link loader to stick strictly to the conda environment
+conda_lib = "/users/0/hinsv006/miniconda3/envs/carson/lib"
+os.environ["LD_LIBRARY_PATH"] = f"{conda_lib}:/lib64"
+sys.path.insert(0, conda_lib)
+
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
+print("Active Device Status:", "cuda" if torch.cuda.is_available() else "cpu")
 
 if __name__ == "__main__":
     in_channels = 10
@@ -32,13 +44,13 @@ if __name__ == "__main__":
         in_channels=in_channels,
         out_channels=out_channels
     )
-    print(f"\tSTATT Model Complete")
+    print(f"STATT Model Complete")
     wstatt = WSTATT(
         in_channels=in_channels,
         in_channels_w=in_channels_weather,
         out_channels=out_channels
     )
-    print(f"\tWSTATT Model Complete")
+    print(f"WSTATT Model Complete")
 
     print("########## TRAINING MODELS ##########")
     statt = statt.to(device)
