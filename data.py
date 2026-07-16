@@ -12,15 +12,23 @@ from torch.utils.data.dataloader import DataLoader
 
 # To set your own directory path, find the WSTATT_DATA folder in your Google Drive and copy it 'as path'
 # The long string I used as the parameter to Path() is simply my own unique path to WSTATT_DATA
-data_dir = Path(r"G:\.shortcut-targets-by-id\1HSUD74s6N7xoIyRlrflxsV5nZ4mnEFTX\WSTATT_DATA")
+data_dir = Path(r"../WSTATT_DATA")
 
-combined_label_data_dir = Path(r"G:\.shortcut-targets-by-id\1HSUD74s6N7xoIyRlrflxsV5nZ4mnEFTX\WSTATT_DATA\LABEL_DATA\NUMPY\COMBINED_LABELS")
-eroded_label_data_dir = Path(r"G:\.shortcut-targets-by-id\1HSUD74s6N7xoIyRlrflxsV5nZ4mnEFTX\WSTATT_DATA\LABEL_DATA\NUMPY\ERODED_LABELS")
-sat_data_dir = Path(r"G:\.shortcut-targets-by-id\1HSUD74s6N7xoIyRlrflxsV5nZ4mnEFTX\WSTATT_DATA\SATELLITE\NUMPY")
-weather_data_dir = Path(r"G:\.shortcut-targets-by-id\1HSUD74s6N7xoIyRlrflxsV5nZ4mnEFTX\WSTATT_DATA\WEATHER\DAYMET")
+combined_label_data_dir = Path(r"../WSTATT_DATA/LABEL_DATA/NUMPY/COMBINED_LABELS")
+eroded_label_data_dir = Path(r"../WSTATT_DATA/LABEL_DATA/NUMPY/ERODED_LABELS")
+sat_data_dir = Path(r"../WSTATT_DATA/SATELLITE/NUMPY")
+weather_data_dir = Path(r"../WSTATT_DATA/WEATHER/DAYMET")
 
 input_patch_size = 32
 output_patch_size = 32
+
+# List of all possible grid names in the google drive folder, based on their naming conventions
+dataset = [
+    f"T11SKA_{year}_{first_digit}_{second_digit}"
+    for year in (2018, 2019, 2020)
+    for first_digit in range(10)
+    for second_digit in range(10)
+]
 
 def create_weather_satellite_patches(grid):
     '''
@@ -29,6 +37,8 @@ def create_weather_satellite_patches(grid):
     Returns:
         (image_patches, weather_patches, label_patches) - Numpy arrays of image, weather, and label patches
     '''
+    print(f'\rCreating patches for grid: {grid}', end="")
+
     image = np.load(os.path.join(sat_data_dir, grid + "_image.npy"))
     label = np.load(os.path.join(eroded_label_data_dir, grid + "_label.npy"))
     weather = np.load(os.path.join(weather_data_dir, grid + "_daymet_10980_global_normalised_year_day_average_grid_array.npy"))
@@ -115,43 +125,32 @@ class SEGMENTATION(Dataset):
             self.label_patches[idx]
         )
 
-def get_data_loaders(epochs, batch_size):
+def get_random_sample():
+    '''
+    Returns:
+        A randomized sample of the grid names in the dataset (eg. T11SKA_2018_0_0)
+    '''
+    return random.sample(dataset, len(dataset))
+
+def get_data_loader(grid, batch_size):
     '''
     Args:
-        epochs - Number of rounds the model is training for; also the number of data_loaders needed
+        grid - A single WSTATT data sample (eg. T11SKA_2018_0_0) as a string
         batch_size - Number of samples per batch; needed to determine how many batches are needed for each data_loader
     Returns:
-        data_loaders - A list of data_loader objects, each containing shuffled batches of image, weather, and label patches
+        data_loader - A data_loader object containing shuffled batches of image, weather, and label patches
     '''
-    data_loaders = []
 
-    # List of all possible grid names in the google drive folder, based on their naming conventions
-    dataset = [
-        f"T11SKA_{year}_{first_digit}_{second_digit}"
-        for year in (2018, 2019, 2020)
-        for first_digit in range(10)
-        for second_digit in range(10)
-    ]
+    image_patches, weather_patches, label_patches = create_weather_satellite_patches(grid)
 
-    # A data loader is created once per epoch
-    for epoch in range(1, epochs + 1): 
-        # Extract a random sample of the dataset 
-        sample = random.sample(dataset, len(dataset))
+    data = SEGMENTATION(image_patches, weather_patches, label_patches)
 
-        # Iterate over the sampled dataset to create image, weather, and label patches for each grid
-        for grid_num, grid in enumerate(dataset):
-            image_patches, weather_patches, label_patches = create_weather_satellite_patches(grid)
+    data_loader = DataLoader(
+        dataset=data,
+        batch_size=batch_size,
+        shuffle=True,
+        num_workers=0,
+        drop_last=False
+    )
 
-            data = SEGMENTATION(image_patches, weather_patches, label_patches)
-
-            data_loader = DataLoader(
-                dataset=data,
-                batch_size=batch_size,
-                shuffle=True,
-                num_workers=0,
-                drop_last=False
-            )
-
-            data_loaders.append(data_loader)
-
-    return data_loaders
+    return data_loader
