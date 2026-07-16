@@ -9,6 +9,8 @@ from pathlib import Path
 from torch.utils.data.dataset import Dataset
 from torch.utils.data.dataloader import DataLoader
 
+from Models.baseline import STATT, WSTATT
+
 
 # To set your own directory path, find the WSTATT_DATA folder in your Google Drive and copy it 'as path'
 # The long string I used as the parameter to Path() is simply my own unique path to WSTATT_DATA
@@ -30,7 +32,43 @@ dataset = [
     for second_digit in range(10)
 ]
 
-def create_weather_satellite_patches(grid):
+
+class SEGMENTATION(Dataset):
+    """Custom PyTorch Dataset for satellite image patches with weather data.
+
+    Combines:
+    - Satellite image patches (spatio-temporal data)
+    - Weather data (temporal features)
+    - Segmentation labels (ground truth)
+    """
+    def __init__(self, image_patches, weather_patches, label_patches):
+        """Initialize dataset with preprocessed patches.
+
+        Args:
+            image_patches: Array of satellite image patches
+                shape: (num_samples, timesteps, channels, height, width)
+            weather_patches: Array of weather data sequences
+                shape: (num_samples, timesteps, weather_features)
+            label_patches: Array of segmentation labels
+                shape: (num_samples, height, width)
+        """
+        self.image_patches = image_patches
+        self.weather_patches = weather_patches
+        self.label_patches = label_patches
+
+    def __len__(self):
+        ''' Returns the total number of samples in the dataset '''
+        return len(self.label_patches)
+
+    def __getitem__(self, idx):
+        ''' Returns a specific indexed sample from the dataset including its image, weather, and label patch'''
+        return(
+            self.image_patches[idx],
+            self.weather_patches[idx],
+            self.label_patches[idx]
+        )
+
+def create_patches(grid):
     '''
     Args:
         grid - A single WSTATT data sample (eg. T11SKA_2018_0_0) as a string
@@ -90,41 +128,6 @@ def create_weather_satellite_patches(grid):
 
     return image_patches, weather_patches, label_patches
 
-class SEGMENTATION(Dataset):
-    """Custom PyTorch Dataset for satellite image patches with weather data.
-
-    Combines:
-    - Satellite image patches (spatio-temporal data)
-    - Weather data (temporal features)
-    - Segmentation labels (ground truth)
-    """
-    def __init__(self, image_patches, weather_patches, label_patches):
-        """Initialize dataset with preprocessed patches.
-
-        Args:
-            image_patches: Array of satellite image patches
-                shape: (num_samples, timesteps, channels, height, width)
-            weather_patches: Array of weather data sequences
-                shape: (num_samples, timesteps, weather_features)
-            label_patches: Array of segmentation labels
-                shape: (num_samples, height, width)
-        """
-        self.image_patches = image_patches
-        self.weather_patches = weather_patches
-        self.label_patches = label_patches
-
-    def __len__(self):
-        ''' Returns the total number of samples in the dataset '''
-        return len(self.label_patches)
-
-    def __getitem__(self, idx):
-        ''' Returns a specific indexed sample from the dataset including its image, weather, and label patch'''
-        return(
-            self.image_patches[idx],
-            self.weather_patches[idx],
-            self.label_patches[idx]
-        )
-
 def get_random_sample():
     '''
     Returns:
@@ -141,7 +144,7 @@ def get_data_loader(grid, batch_size):
         data_loader - A data_loader object containing shuffled batches of image, weather, and label patches
     '''
 
-    image_patches, weather_patches, label_patches = create_weather_satellite_patches(grid)
+    image_patches, weather_patches, label_patches = create_patches(grid)
 
     data = SEGMENTATION(image_patches, weather_patches, label_patches)
 

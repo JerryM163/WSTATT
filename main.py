@@ -22,63 +22,75 @@ if __name__ == "__main__":
     output_patch_size = 32
     batch_size = 16
 
-    print("#######################################################################")
-    print("BUILDING MODELS")
+    print("########## BUILDING MODELS ##########")
     statt = STATT(
         in_channels=in_channels,
         out_channels=out_channels
     )
+    print("## STATT model complete ##")
     wstatt = WSTATT(
         in_channels=in_channels,
         in_channels_w=in_channels_weather,
         out_channels=out_channels
     )
+    print("## WSTATT model complete ##")
 
-    models = [statt, wstatt]
-    print("COMPLETED")
+    print("########## TRAINING MODELS ##########")
+    statt = statt.to(device)
+    wstatt = wstatt.to(device)
 
-    for model in models:
-        print("#######################################################################")
-        print(f"TRAINING {model}")
-        model = model.to(device)
+    criterion = torch.nn.CrossEntropyLoss(ignore_index=unknown_class)
 
-        criterion = torch.nn.CrossEntropyLoss(ignore_index=unknown_class)
-        optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+    statt_optim = torch.optim.Adam(statt.parameters(), lr=learning_rate)
+    wstatt_optim = torch.optim.Adam(wstatt.parameters(), lr=learning_rate)
 
-        train_loss = []
+    statt_train_loss = []
+    wstatt_train_loss = []
 
-        for epoch in range(num_epochs):
-            print(f'## EPOCH {epoch} ##')
+    for epoch in range(num_epochs):
+        print(f'## Training EPOCH {epoch} ##')
 
-            model.train()
+        statt.train()
+        wstatt.train()
 
-            epoch_loss = 0
+        statt_epoch_loss = 0
+        wstatt_epoch_loss = 0
 
-            dataset = get_random_sample()
+        dataset = get_random_sample()
 
-            for grid_num, grid in enumerate(dataset):
-                data_loader = get_data_loader(grid, batch_size)
+        for grid_num, grid in enumerate(dataset):
+            data_loader = get_data_loader(grid, batch_size)
 
-                grid_loss = 0
+            statt_grid_loss = 0
+            wstatt_grid_loss = 0
 
-                for batch, [image_patch, label_patch] in enumerate(data_loader):
-                    optimizer.zero_grad()
+            for batch, [image_patch, weather_patch, label_patch] in enumerate(data_loader):
+                statt_optim.zero_grad()
+                wstatt_optim.zero_grad()
 
-                    output = model(image_patch.to(device))
+                statt_out = statt(image_patch.to(device))
+                wstatt_out = wstatt(image_patch.to(device), weather_patch.to(device))
 
-                    label_patch = label_patch.type(torch.long).to(device)
+                label_patch = label_patch.type(torch.long).to(device)
 
-                    batch_loss = criterion(output, label_patch)
+                statt_batch_loss = criterion(statt_out, label_patch)
+                wstatt_batch_loss = criterion(wstatt_out, label_patch)
 
-                    batch_loss.backward() 
-                    optimizer.step()     
+                statt_batch_loss.backward(), wstatt_batch_loss.backward()
+                statt_optim.step(), wstatt_optim.step()
 
-                    grid_loss += batch_loss.item()
+                statt_grid_loss += statt_batch_loss.item()
+                wstatt_grid_loss += wstatt_batch_loss.item()
 
-                grid_loss = grid_loss / (batch + 1) 
-                print(f'\tGrid Number: {grid_num} Grid:{grid} Grid Loss:{grid_loss}')
-                epoch_loss += grid_loss
+            statt_grid_loss = statt_grid_loss / (batch + 1) 
+            wstatt_grid_loss = wstatt_grid_loss / (batch + 1)
+            print(f'\t({grid_num}) Loss for grid {grid}: STATT {statt_grid_loss}, WSTATT {wstatt_grid_loss}')
+            statt_epoch_loss += statt_grid_loss
+            wstatt_epoch_loss += wstatt_grid_loss
 
-            epoch_loss = epoch_loss / (grid_num + 1)
-            print(f'\nTrain Loss:{epoch_loss}')
-            train_loss.append(epoch_loss) 
+        statt_epoch_loss = statt_epoch_loss / (grid_num + 1)
+        wstatt_epoch_loss = wstatt_epoch_loss / (grid_num + 1)
+        print(f'\Train loss for: STATT {statt_epoch_loss}, WSTATT {wstatt_epoch_loss}')
+
+        statt_train_loss.append(statt_epoch_loss)
+        wstatt_train_loss.append(wstatt_epoch_loss)
