@@ -1,4 +1,4 @@
 import torch.cuda as cuda
 
-device = 'CUDA' if cuda.is_available() else 'CPU'
+device = 'cuda' if cuda.is_available() else 'cpu'
 print(f"Available Device: {device}")
