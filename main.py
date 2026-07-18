@@ -9,8 +9,8 @@ conda_lib = "/users/0/hinsv006/miniconda3/envs/carson/lib"
 os.environ["LD_LIBRARY_PATH"] = f"{conda_lib}:/lib64"
 sys.path.insert(0, conda_lib)
 
-import time
 import random
+from re import split
 import torch
 import numpy as np
 from sklearn.metrics import confusion_matrix, f1_score, accuracy_score, classification_report
@@ -34,13 +34,26 @@ if __name__ == "__main__":
     output_patch_size = 32
     batch_size = 16
 
+    NUM_SAMPLES = 32
+
     # List of all possible grid names in the google drive folder, based on their naming conventions
-    datasets = [
+    dataset = [
         f"T11SKA_{year}_{first_digit}_{second_digit}"
         for year in (2018, 2019, 2020)
         for first_digit in range(10)
         for second_digit in range(10)
     ]
+
+    shuffled = random.sampled(dataset, len(dataset))
+    split_idx = int(len(shuffled) * 0.6)
+    
+    train_dataset = shuffled[:split_idx]
+
+    split_dataset = shuffled[split_idx:]
+    split_idx = int(len(split_dataset) * 0.5)
+
+    val_dataset = split_dataset[:split_idx]
+    test_dataset = split_dataset[split_idx:]
 
     print("########## BUILDING MODELS ##########")
     statt = STATT(
@@ -72,23 +85,22 @@ if __name__ == "__main__":
 
         statt.train()
         wstatt.train()
-        epoch_time_start = time.time()
 
         statt_epoch_loss = 0
         wstatt_epoch_loss = 0
 
-        dataset = random.sample(datasets, 1)
+        sample_grids = random.sample(train_dataset, NUM_SAMPLES)
 
-        for grid_num, grid in enumerate(dataset):
-            grid_time_start = time.time()
+        for grid_num, grid in enumerate(sample_grids):
 
-            print(f'## GRID {grid} ##')
+            print(f"Getting data loader for grid {grid}...", end='\r', flush=True)
             data_loader = get_data_loader(grid, batch_size)
 
             statt_grid_loss = 0
             wstatt_grid_loss = 0
 
             for batch, [image_patch, weather_patch, label_patch] in enumerate(data_loader):
+                print(f"Training on {grid}'s batch {batch + 1}", end='\r', flush=True)
                 statt_optim.zero_grad()
                 wstatt_optim.zero_grad()
 
@@ -113,25 +125,14 @@ if __name__ == "__main__":
 
             statt_grid_loss = statt_grid_loss / (batch + 1) 
             wstatt_grid_loss = wstatt_grid_loss / (batch + 1)
-            print(f'''
-                \tGrid Num: {grid_num:02}
-                \tGrid: {grid}
-                \tSTATT Loss: {statt_grid_loss:.4f}
-                \tWSTATT: {wstatt_grid_loss:.4f}
-                \tGrid Time: {time.time() - grid_time_start}
-            ''')
+            print(f'\tGrid Num: {grid_num}\tGrid: {grid}\tSTATT Loss: {statt_grid_loss:.4f}\tWSTATT: {wstatt_grid_loss:.4f}')
 
             statt_epoch_loss += statt_grid_loss
             wstatt_epoch_loss += wstatt_grid_loss
 
         statt_epoch_loss = statt_epoch_loss / (grid_num + 1)
         wstatt_epoch_loss = wstatt_epoch_loss / (grid_num + 1)
-        print(f'''
-            \tEpoch: {epoch + 1}
-            \tSTATT Loss: {statt_epoch_loss:.4f}
-            \tWSTATT {wstatt_epoch_loss:.4f}
-            \tEpoch Time {time.time() - epoch_time_start}
-        ''')
+        print(f'\tSTATT Test Loss: {statt_epoch_loss:.4f}\tWSTATT Test Loss: {wstatt_epoch_loss:.4f}')
 
         statt_train_loss.append(statt_epoch_loss)
         wstatt_train_loss.append(wstatt_epoch_loss)
@@ -176,21 +177,22 @@ wstatt_pred_list = []
 # Set model to evaluation mode (disables dropout/BatchNorm)
 statt.eval()
 wstatt.eval()
-test_time_start = time.time()  # Start test timer
 
 # Test dataset - normally multiple grids, here using one for demonstration
-dataset = random.sample(datasets, 1)
+sample_grids = random.sample(test_dataset, NUM_SAMPLES)
 
 statt_epoch_loss = 0  # Accumulate loss across grids
 wstatt_epoch_loss = 0
 # Process each grid in test dataset
-for grid_num, grid in enumerate(dataset):
+for grid_num, grid in enumerate(sample_grids):
+    print(f"Getting data loader for grid {grid}...", end='\r', flush=True)
     data_loader = get_data_loader(grid, batch_size)
 
     statt_grid_loss = 0  # Accumulate loss for this grid
     wstatt_grid_loss = 0
     # Process all batches in grid
     for batch, [image_patch, weather_patch, label_patch] in enumerate(data_loader):
+        print(f"Testing on {grid}'s batch {batch + 1}", end='\r', flush=True)
         # Forward pass WITHOUT gradient calculation (saves memory)
         image_tensor = image_patch.to(device, non_blocking=True)
         weather_tensor = weather_patch.to(device, non_blocking=True)
@@ -243,13 +245,7 @@ for grid_num, grid in enumerate(dataset):
     # Calculate average loss for current grid
     statt_grid_loss = statt_grid_loss / (batch + 1)
     wstatt_grid_loss = wstatt_grid_loss / (batch + 1)
-    print(f'''
-        \tGrid Num: {grid_num:02}
-        \tGrid: {grid}
-        \tSTATT Loss: {statt_grid_loss:.4f}
-        \tWSTATT: {wstatt_grid_loss:.4f}
-        \tGrid Time: {time.time() - grid_time_start}
-    ''')
+    print(f'\tGrid Num: {grid_num:02}\tGrid: {grid}\tSTATT Loss: {statt_grid_loss:.4f}\tWSTATT Loss: {wstatt_grid_loss:.4f}')
     statt_epoch_loss += statt_grid_loss
     wstatt_epoch_loss += wstatt_grid_loss
 
@@ -261,11 +257,7 @@ wstatt_pred_array = np.array(wstatt_pred_list)
 # Calculate overall test loss
 statt_epoch_loss = statt_epoch_loss / (grid_num + 1)
 wstatt_epoch_loss = wstatt_epoch_loss / (grid_num + 1)
-print(f'''
-    STATT Test Loss:{statt_epoch_loss:.4f}
-    \tWSTATT Test Loss:{wstatt_epoch_loss:.4f}
-    \tTest Time:{time.time() - test_time_start:.2f}s
-''')
+print(f'STATT Test Loss:{statt_epoch_loss:.4f}\tWSTATT Test Loss:{wstatt_epoch_loss:.4f}')
 statt_test_loss.append(statt_epoch_loss)  # Store for later analysis
 wstatt_test_loss.append(wstatt_epoch_loss)
 
