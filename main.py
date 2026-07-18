@@ -93,14 +93,14 @@ if __name__ == "__main__":
 
         for grid_num, grid in enumerate(sample_grids):
 
-            print(f"\rGetting data loader for grid {grid}...", end="")
+            print(f"\rGetting data loader for grid {grid}...", end="", flush=True)
             data_loader = get_data_loader(grid, batch_size)
 
             statt_grid_loss = 0
             wstatt_grid_loss = 0
 
             for batch, [image_patch, weather_patch, label_patch] in enumerate(data_loader):
-                print(f"\rTraining on {grid}'s batch {batch + 1}", end="")
+                print(f"\rTraining on {grid}'s batch {batch + 1}", end="", flush=True)
                 statt_optim.zero_grad()
                 wstatt_optim.zero_grad()
 
@@ -185,14 +185,14 @@ statt_epoch_loss = 0  # Accumulate loss across grids
 wstatt_epoch_loss = 0
 # Process each grid in test dataset
 for grid_num, grid in enumerate(sample_grids):
-    print(f"\rGetting data loader for grid {grid}...", end="")
+    print(f"\rGetting data loader for grid {grid}...", end="", flush=True)
     data_loader = get_data_loader(grid, batch_size)
 
     statt_grid_loss = 0  # Accumulate loss for this grid
     wstatt_grid_loss = 0
     # Process all batches in grid
     for batch, [image_patch, weather_patch, label_patch] in enumerate(data_loader):
-        print(f"\rTesting on {grid}'s batch {batch + 1}", end="")
+        print(f"\rTesting on {grid}'s batch {batch + 1}", end="", flush=True)
         # Forward pass WITHOUT gradient calculation (saves memory)
         image_tensor = image_patch.to(device, non_blocking=True)
         weather_tensor = weather_patch.to(device, non_blocking=True)
