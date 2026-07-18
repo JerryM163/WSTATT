@@ -93,14 +93,14 @@ if __name__ == "__main__":
 
         for grid_num, grid in enumerate(sample_grids):
 
-            print(f"Getting data loader for grid {grid}...", end='\r', flush=True)
+            print(f"\rGetting data loader for grid {grid}...", end="")
             data_loader = get_data_loader(grid, batch_size)
 
             statt_grid_loss = 0
             wstatt_grid_loss = 0
 
             for batch, [image_patch, weather_patch, label_patch] in enumerate(data_loader):
-                print(f"Training on {grid}'s batch {batch + 1}", end='\r', flush=True)
+                print(f"\rTraining on {grid}'s batch {batch + 1}", end="")
                 statt_optim.zero_grad()
                 wstatt_optim.zero_grad()
 
@@ -125,14 +125,14 @@ if __name__ == "__main__":
 
             statt_grid_loss = statt_grid_loss / (batch + 1) 
             wstatt_grid_loss = wstatt_grid_loss / (batch + 1)
-            print(f'\tGrid Num: {grid_num}\tGrid: {grid}\tSTATT Loss: {statt_grid_loss:.4f}\tWSTATT: {wstatt_grid_loss:.4f}')
+            print(f'Grid Num: {grid_num} Grid: {grid} STATT Loss: {statt_grid_loss:.4f} WSTATT: {wstatt_grid_loss:.4f}')
 
             statt_epoch_loss += statt_grid_loss
             wstatt_epoch_loss += wstatt_grid_loss
 
         statt_epoch_loss = statt_epoch_loss / (grid_num + 1)
         wstatt_epoch_loss = wstatt_epoch_loss / (grid_num + 1)
-        print(f'\tSTATT Test Loss: {statt_epoch_loss:.4f}\tWSTATT Test Loss: {wstatt_epoch_loss:.4f}')
+        print(f'\tSTATT Test Loss: {statt_epoch_loss:.4f} WSTATT Test Loss: {wstatt_epoch_loss:.4f}')
 
         statt_train_loss.append(statt_epoch_loss)
         wstatt_train_loss.append(wstatt_epoch_loss)
@@ -185,14 +185,14 @@ statt_epoch_loss = 0  # Accumulate loss across grids
 wstatt_epoch_loss = 0
 # Process each grid in test dataset
 for grid_num, grid in enumerate(sample_grids):
-    print(f"Getting data loader for grid {grid}...", end='\r', flush=True)
+    print(f"\rGetting data loader for grid {grid}...", end="")
     data_loader = get_data_loader(grid, batch_size)
 
     statt_grid_loss = 0  # Accumulate loss for this grid
     wstatt_grid_loss = 0
     # Process all batches in grid
     for batch, [image_patch, weather_patch, label_patch] in enumerate(data_loader):
-        print(f"Testing on {grid}'s batch {batch + 1}", end='\r', flush=True)
+        print(f"\rTesting on {grid}'s batch {batch + 1}", end="")
         # Forward pass WITHOUT gradient calculation (saves memory)
         image_tensor = image_patch.to(device, non_blocking=True)
         weather_tensor = weather_patch.to(device, non_blocking=True)
@@ -245,7 +245,7 @@ for grid_num, grid in enumerate(sample_grids):
     # Calculate average loss for current grid
     statt_grid_loss = statt_grid_loss / (batch + 1)
     wstatt_grid_loss = wstatt_grid_loss / (batch + 1)
-    print(f'\tGrid Num: {grid_num:02}\tGrid: {grid}\tSTATT Loss: {statt_grid_loss:.4f}\tWSTATT Loss: {wstatt_grid_loss:.4f}')
+    print(f'Grid Num: {grid_num:02} Grid: {grid} STATT Loss: {statt_grid_loss:.4f} WSTATT Loss: {wstatt_grid_loss:.4f}')
     statt_epoch_loss += statt_grid_loss
     wstatt_epoch_loss += wstatt_grid_loss
 
@@ -257,7 +257,9 @@ wstatt_pred_array = np.array(wstatt_pred_list)
 # Calculate overall test loss
 statt_epoch_loss = statt_epoch_loss / (grid_num + 1)
 wstatt_epoch_loss = wstatt_epoch_loss / (grid_num + 1)
-print(f'STATT Test Loss:{statt_epoch_loss:.4f}\tWSTATT Test Loss:{wstatt_epoch_loss:.4f}')
+
+print(f'\tSTATT Test Loss:{statt_epoch_loss:.4f} WSTATT Test Loss:{wstatt_epoch_loss:.4f}')
+
 statt_test_loss.append(statt_epoch_loss)  # Store for later analysis
 wstatt_test_loss.append(wstatt_epoch_loss)
 
@@ -275,5 +277,8 @@ valid_labels = unique_labels[support > threshold]
 filtered_class_names = [class_names[i] for i in range(len(class_names)) if labels_list[i] in valid_labels]
 
 # Compute classification report only for selected labels
+print("## STATT Classification Report ##")
 print(classification_report(label_array, statt_pred_array, target_names=filtered_class_names, digits=4, labels=valid_labels))
+
+print("## WSTATT Classification Report ##")
 print(classification_report(label_array, wstatt_pred_array, target_names=filtered_class_names, digits=4, labels=valid_labels))
