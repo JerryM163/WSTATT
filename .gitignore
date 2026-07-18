@@ -1,2 +1,8 @@
 .vs/
+
+# Ignore pychache's wherever python files are stored
 Models/__pycache__
+__pycache__
+
+# My own personal files for testing
+Temporary
