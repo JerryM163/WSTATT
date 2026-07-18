@@ -44,7 +44,7 @@ if __name__ == "__main__":
         for second_digit in range(10)
     ]
 
-    shuffled = random.sampled(dataset, len(dataset))
+    shuffled = random.sample(dataset, len(dataset))
     split_idx = int(len(shuffled) * 0.6)
     
     train_dataset = shuffled[:split_idx]
