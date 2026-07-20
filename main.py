@@ -64,7 +64,9 @@ if __name__ == "__main__":
     )
     if os.path.isfile("Statt.pt"):
         statt.load_state_dict(torch.load("Statt.pt"),strict = False)
-    print(f"STATT Model Complete")
+        print("STATT Model Loaded")
+    else:
+        print(f"STATT Model Complete")
 
     wstatt = WSTATT(
         in_channels=in_channels,
@@ -73,7 +75,8 @@ if __name__ == "__main__":
     )
     if os.path.isfile("Wstatt.pt"):
         wstatt.load_state_dict(torch.load("Wstatt.pt"),strict = False)
-    print(f"WSTATT Model Complete")
+    else:
+        print(f"WSTATT Model Complete")
 
     print("########## TRAINING MODELS ##########")
     statt = statt.to(device)
