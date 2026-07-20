@@ -62,7 +62,7 @@ if __name__ == "__main__":
         in_channels=in_channels,
         out_channels=out_channels
     )
-    if Path("Statt.pt").isfile():
+    if os.path.isfile("Statt.pt"):
         statt.load_state_dict(torch.load("Statt.pt"),strict = False)
     print(f"STATT Model Complete")
 
@@ -71,7 +71,7 @@ if __name__ == "__main__":
         in_channels_w=in_channels_weather,
         out_channels=out_channels
     )
-    if Path("Wstatt.pt").isfile():
+    if os.path.isfile("Wstatt.pt"):
         wstatt.load_state_dict(torch.load("Wstatt.pt"),strict = False)
     print(f"WSTATT Model Complete")
 
