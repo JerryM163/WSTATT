@@ -1,3 +1,4 @@
+from genericpath import isfile
 import os
 import sys
 
@@ -11,6 +12,7 @@ sys.path.insert(0, conda_lib)
 
 import random
 from re import split
+from pathlib import Path
 import torch
 import numpy as np
 from sklearn.metrics import confusion_matrix, f1_score, accuracy_score, classification_report
@@ -60,12 +62,17 @@ if __name__ == "__main__":
         in_channels=in_channels,
         out_channels=out_channels
     )
+    if Path.isfile("Statt.pt"):
+        statt.load_state_dict(torch.load("Statt.pt"),strict = False)
     print(f"STATT Model Complete")
+
     wstatt = WSTATT(
         in_channels=in_channels,
         in_channels_w=in_channels_weather,
         out_channels=out_channels
     )
+    if Path.isfile("Wstatt.pt"):
+        wstatt.load_state_dict(torch.load("Wstatt.pt"),strict = False)
     print(f"WSTATT Model Complete")
 
     print("########## TRAINING MODELS ##########")
@@ -80,66 +87,64 @@ if __name__ == "__main__":
     statt_train_loss = []
     wstatt_train_loss = []
 
-    for epoch in range(num_epochs):
-        print(f'## EPOCH {epoch + 1} ##')
+    statt.train()
+    wstatt.train()
 
-        statt.train()
-        wstatt.train()
+    statt_epoch_loss = 0
+    wstatt_epoch_loss = 0
 
-        statt_epoch_loss = 0
-        wstatt_epoch_loss = 0
+    sample_grids = random.sample(train_dataset, NUM_SAMPLES)
 
-        sample_grids = random.sample(train_dataset, NUM_SAMPLES)
+    for grid_num, grid in enumerate(sample_grids):
 
-        for grid_num, grid in enumerate(sample_grids):
+        print("\x1b[2K" + f"Getting data loader for grid {grid}...", end="\r", flush=True)
+        data_loader = get_data_loader(grid, batch_size)
 
-            print("\x1b[2K" + f"Getting data loader for grid {grid}...", end="\r", flush=True)
-            data_loader = get_data_loader(grid, batch_size)
+        statt_grid_loss = 0
+        wstatt_grid_loss = 0
 
-            statt_grid_loss = 0
-            wstatt_grid_loss = 0
+        for batch, [image_patch, weather_patch, label_patch] in enumerate(data_loader):
+            print("\x1b[2K" + f"Training on {grid}'s batch {batch + 1}", end="\r", flush=True)
+            statt_optim.zero_grad()
+            wstatt_optim.zero_grad()
 
-            for batch, [image_patch, weather_patch, label_patch] in enumerate(data_loader):
-                print("\x1b[2K" + f"Training on {grid}'s batch {batch + 1}", end="\r", flush=True)
-                statt_optim.zero_grad()
-                wstatt_optim.zero_grad()
+            image_tensor = image_patch.to(device, non_blocking=True)
+            weather_tensor = weather_patch.to(device, non_blocking=True)
+            label_patch = label_patch.type(torch.long).to(device, non_blocking=True)
 
-                image_tensor = image_patch.to(device, non_blocking=True)
-                weather_tensor = weather_patch.to(device, non_blocking=True)
-                label_patch = label_patch.type(torch.long).to(device, non_blocking=True)
+            statt_out = statt(image_tensor)
+            wstatt_out = wstatt(image_tensor, weather_tensor)
 
-                statt_out = statt(image_tensor)
-                wstatt_out = wstatt(image_tensor, weather_tensor)
+            statt_batch_loss = criterion(statt_out, label_patch)
+            wstatt_batch_loss = criterion(wstatt_out, label_patch)
 
-                statt_batch_loss = criterion(statt_out, label_patch)
-                wstatt_batch_loss = criterion(wstatt_out, label_patch)
+            statt_batch_loss.backward()
+            wstatt_batch_loss.backward()
 
-                statt_batch_loss.backward()
-                wstatt_batch_loss.backward()
+            statt_optim.step()
+            wstatt_optim.step()
 
-                statt_optim.step()
-                wstatt_optim.step()
+            statt_grid_loss += statt_batch_loss.item()
+            wstatt_grid_loss += wstatt_batch_loss.item()
 
-                statt_grid_loss += statt_batch_loss.item()
-                wstatt_grid_loss += wstatt_batch_loss.item()
+        statt_grid_loss = statt_grid_loss / (batch + 1) 
+        wstatt_grid_loss = wstatt_grid_loss / (batch + 1)
+        print("\x1b[2K" + f'Grid Num: {grid_num} Grid: {grid} STATT Loss: {statt_grid_loss:.4f} WSTATT: {wstatt_grid_loss:.4f}')
 
-            statt_grid_loss = statt_grid_loss / (batch + 1) 
-            wstatt_grid_loss = wstatt_grid_loss / (batch + 1)
-            print("\x1b[2K" + f'Grid Num: {grid_num} Grid: {grid} STATT Loss: {statt_grid_loss:.4f} WSTATT: {wstatt_grid_loss:.4f}')
+        statt_epoch_loss += statt_grid_loss
+        wstatt_epoch_loss += wstatt_grid_loss
 
-            statt_epoch_loss += statt_grid_loss
-            wstatt_epoch_loss += wstatt_grid_loss
+    statt_epoch_loss = statt_epoch_loss / (grid_num + 1)
+    wstatt_epoch_loss = wstatt_epoch_loss / (grid_num + 1)
+    print(f'\tSTATT Test Loss: {statt_epoch_loss:.4f} WSTATT Test Loss: {wstatt_epoch_loss:.4f}')
 
-        statt_epoch_loss = statt_epoch_loss / (grid_num + 1)
-        wstatt_epoch_loss = wstatt_epoch_loss / (grid_num + 1)
-        print(f'\tSTATT Test Loss: {statt_epoch_loss:.4f} WSTATT Test Loss: {wstatt_epoch_loss:.4f}')
+    statt_train_loss.append(statt_epoch_loss)
+    wstatt_train_loss.append(wstatt_epoch_loss)
 
-        statt_train_loss.append(statt_epoch_loss)
-        wstatt_train_loss.append(wstatt_epoch_loss)
+    torch.save(statt.state_dict(), "Statt.pt")
+    torch.save(wstatt.state_dict(), "Wstatt.pt")
 
-        torch.save(statt.state_dict(), "Statt.pt")
-        torch.save(wstatt.state_dict(), "Wstatt.pt")
-
+'''
 print("########## TEST MODELS ##########")
 statt = STATT(
     in_channels=in_channels,
@@ -165,7 +170,10 @@ print("#######################################################################")
 
 threshold = 50000
 labels_list = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32]
-class_names = ['Corn','Cotton','Rice','Sunflower','Barley','Winter_Wheat','Safflower','Dry Beans','Onions','Tomatoes','Cherries','Grapes','Citrus','Almonds','Walnut','Pistachio','Garlic','Olives','Pomegranates','Alfalfa','Hay','Barren_land','Fallow_and_Idle','Deciduous_Forests','Evergreen_forest','Mixed_Forests','Clover_and_wildflower','Shrubland','Grass','Woody_wetlands','Herbaceous_Wetlands','Water','Urban']
+class_names = ['Corn','Cotton','Rice','Sunflower','Barley','Winter_Wheat','Safflower','Dry Beans','Onions','Tomatoes',
+               'Cherries','Grapes','Citrus','Almonds','Walnut','Pistachio','Garlic','Olives','Pomegranates','Alfalfa',
+               'Hay','Barren_land','Fallow_and_Idle','Deciduous_Forests','Evergreen_forest','Mixed_Forests',
+               'Clover_and_wildflower','Shrubland','Grass','Woody_wetlands','Herbaceous_Wetlands','Water','Urban']
 
 # Initialize metrics storage
 statt_test_loss = []    # Track loss per test run
@@ -178,7 +186,7 @@ wstatt_pred_list = []
 statt.eval()
 wstatt.eval()
 
-# Test dataset - normally multiple grids, here using one for demonstration
+# Test dataset - normally multiple grids
 sample_grids = random.sample(test_dataset, NUM_SAMPLES)
 
 statt_epoch_loss = 0  # Accumulate loss across grids
@@ -282,3 +290,4 @@ print(classification_report(label_array, statt_pred_array, target_names=filtered
 
 print("## WSTATT Classification Report ##")
 print(classification_report(label_array, wstatt_pred_array, target_names=filtered_class_names, digits=4, labels=valid_labels))
+'''
