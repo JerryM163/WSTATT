@@ -58,7 +58,7 @@ if __name__ == "__main__":
     test_dataset = split_dataset[split_idx:]
 
     print("########## BUILDING MODELS ##########")
-    statt = STATT(
+    statt = CNN_STATT(
         in_channels=in_channels,
         out_channels=out_channels
     )
@@ -68,7 +68,7 @@ if __name__ == "__main__":
     else:
         print(f"STATT Model Complete")
 
-    wstatt = WSTATT(
+    wstatt = CNN_WSTATT(
         in_channels=in_channels,
         in_channels_w=in_channels_weather,
         out_channels=out_channels
