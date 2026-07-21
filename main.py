@@ -11,6 +11,7 @@ os.environ["LD_LIBRARY_PATH"] = f"{conda_lib}:/lib64"
 sys.path.insert(0, conda_lib)
 
 import random  
+import time
 from re import split
 from pathlib import Path
 import torch
@@ -57,6 +58,7 @@ if __name__ == "__main__":
     val_dataset = split_dataset[:split_idx]
     test_dataset = split_dataset[split_idx:]
 
+    '''
     print("########## BUILDING MODELS ##########")
     statt = CNN_STATT(
         in_channels=in_channels,
@@ -80,6 +82,8 @@ if __name__ == "__main__":
         print(f"WSTATT Model Complete")
 
     print("########## TRAINING MODELS ##########")
+    start_time = time.time()
+
     statt = statt.to(device)
     wstatt = wstatt.to(device)
 
@@ -100,6 +104,7 @@ if __name__ == "__main__":
     sample_grids = random.sample(train_dataset, NUM_SAMPLES)
 
     for grid_num, grid in enumerate(sample_grids):
+        grid_time = time.time()
 
         print("\x1b[2K" + f"Getting data loader for grid {grid}...", end="\r", flush=True)
         data_loader = get_data_loader(grid, batch_size)
@@ -133,29 +138,29 @@ if __name__ == "__main__":
 
         statt_grid_loss = statt_grid_loss / (batch + 1) 
         wstatt_grid_loss = wstatt_grid_loss / (batch + 1)
-        print("\x1b[2K" + f'Grid Num: {grid_num + 1} Grid: {grid} STATT Loss: {statt_grid_loss:.4f} WSTATT: {wstatt_grid_loss:.4f}')
+        print("\x1b[2K" + f'Grid Num: {grid_num + 1} Grid: {grid} STATT Loss: {statt_grid_loss:.4f} WSTATT: {wstatt_grid_loss:.4f} Time: {(time.time() - grid_time):.2f}')
 
         statt_epoch_loss += statt_grid_loss
         wstatt_epoch_loss += wstatt_grid_loss
 
     statt_epoch_loss = statt_epoch_loss / (grid_num + 1)
     wstatt_epoch_loss = wstatt_epoch_loss / (grid_num + 1)
-    print(f'\tSTATT Test Loss: {statt_epoch_loss:.4f} WSTATT Test Loss: {wstatt_epoch_loss:.4f}')
+    print(f'\tSTATT Test Loss: {statt_epoch_loss:.4f} WSTATT Test Loss: {wstatt_epoch_loss:.4f} Time: {(time.time() - start_time):.2f}')
 
     statt_train_loss.append(statt_epoch_loss)
     wstatt_train_loss.append(wstatt_epoch_loss)
 
     torch.save(statt.state_dict(), "Statt.pt")
     torch.save(wstatt.state_dict(), "Wstatt.pt")
-
 '''
+
 print("########## TEST MODELS ##########")
-statt = STATT(
+statt = CNN_STATT(
     in_channels=in_channels,
     out_channels=out_channels
 )
 
-wstatt = WSTATT(
+wstatt = CNN_WSTATT(
     in_channels=in_channels,
     in_channels_w=in_channels_weather,
     out_channels=out_channels
@@ -205,6 +210,7 @@ for grid_num, grid in enumerate(sample_grids):
     # Process all batches in grid
     for batch, [image_patch, weather_patch, label_patch] in enumerate(data_loader):
         print("\x1b[2K" + f"Testing on {grid}'s batch {batch + 1}", end="\r", flush=True)
+
         # Forward pass WITHOUT gradient calculation (saves memory)
         image_tensor = image_patch.to(device, non_blocking=True)
         weather_tensor = weather_patch.to(device, non_blocking=True)
@@ -294,4 +300,3 @@ print(classification_report(label_array, statt_pred_array, target_names=filtered
 
 print("## WSTATT Classification Report ##")
 print(classification_report(label_array, wstatt_pred_array, target_names=filtered_class_names, digits=4, labels=valid_labels))
-'''

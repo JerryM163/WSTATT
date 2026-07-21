@@ -14,15 +14,15 @@ from Models.cnn import CNN_STATT, CNN_WSTATT
 # The long string I used as the parameter to Path() is simply my own unique path to WSTATT_DATA
 data_dir = Path(r"../WSTATT_DATA")
 
-combined_label_data_dir = Path(r"../WSTATT_DATA/LABEL_DATA/NUMPY/COMBINED_LABELS")
-eroded_label_data_dir = Path(r"../WSTATT_DATA/LABEL_DATA/NUMPY/ERODED_LABELS")
-sat_data_dir = Path(r"../WSTATT_DATA/SATELLITE/NUMPY")
-weather_data_dir = Path(r"../WSTATT_DATA/WEATHER/DAYMET")
+#combined_label_data_dir = Path(r"../WSTATT_DATA/LABEL_DATA/NUMPY/COMBINED_LABELS")
+#eroded_label_data_dir = Path(r"../WSTATT_DATA/LABEL_DATA/NUMPY/ERODED_LABELS")
+#sat_data_dir = Path(r"../WSTATT_DATA/SATELLITE/NUMPY")
+#weather_data_dir = Path(r"../WSTATT_DATA/WEATHER/DAYMET")
 
-#combined_label_data_dir = Path(r"G:\.shortcut-targets-by-id\1HSUD74s6N7xoIyRlrflxsV5nZ4mnEFTX\WSTATT_DATA\LABEL_DATA\NUMPY\COMBINED_LABELS")
-#eroded_label_data_dir = Path(r"G:\.shortcut-targets-by-id\1HSUD74s6N7xoIyRlrflxsV5nZ4mnEFTX\WSTATT_DATA\LABEL_DATA\NUMPY\ERODED_LABELS")
-#sat_data_dir = Path(r"G:\.shortcut-targets-by-id\1HSUD74s6N7xoIyRlrflxsV5nZ4mnEFTX\WSTATT_DATA\SATELLITE\NUMPY")
-#weather_data_dir = Path(r"G:\.shortcut-targets-by-id\1HSUD74s6N7xoIyRlrflxsV5nZ4mnEFTX\WSTATT_DATA\WEATHER\DAYMET")
+combined_label_data_dir = Path(r"G:\.shortcut-targets-by-id\1HSUD74s6N7xoIyRlrflxsV5nZ4mnEFTX\WSTATT_DATA\LABEL_DATA\NUMPY\COMBINED_LABELS")
+eroded_label_data_dir = Path(r"G:\.shortcut-targets-by-id\1HSUD74s6N7xoIyRlrflxsV5nZ4mnEFTX\WSTATT_DATA\LABEL_DATA\NUMPY\ERODED_LABELS")
+sat_data_dir = Path(r"G:\.shortcut-targets-by-id\1HSUD74s6N7xoIyRlrflxsV5nZ4mnEFTX\WSTATT_DATA\SATELLITE\NUMPY")
+weather_data_dir = Path(r"G:\.shortcut-targets-by-id\1HSUD74s6N7xoIyRlrflxsV5nZ4mnEFTX\WSTATT_DATA\WEATHER\DAYMET")
 
 input_patch_size = 32
 output_patch_size = 32
