@@ -27,15 +27,15 @@ class MCT_STATT(torch.nn.Module):
             batch_first=True
         )
 
-        self.conv2_1 = torch.nn.Conv1d(32, 64, 3, padding=1)
-        self.norm2_1 = torch.nn.BatchNorm1d(64)
+        self.conv2_1 = torch.nn.Conv1d(80, 160, 3, padding=1)
+        self.norm2_1 = torch.nn.BatchNorm1d(160)
 
-        self.conv2_2 = torch.nn.Conv1d(64, 128, 3, padding=1)
-        self.norm2_2 = torch.nn.BatchNorm1d(128)
+        self.conv2_2 = torch.nn.Conv1d(160, 320, 3, padding=1)
+        self.norm2_2 = torch.nn.BatchNorm1d(320)
 
         self.transformer3 = torch.nn.Transformer(
-            d_model=32,
-            nhead=4,
+            d_model=80,
+            nhead=10,
             batch_first=True
         )
 
