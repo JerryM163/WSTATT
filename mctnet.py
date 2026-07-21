@@ -48,11 +48,11 @@ class MCT_STATT(torch.nn.Module):
         self.linear = torch.nn.Linear(in_channels, out_channels)
         self.softmax = torch.nn.Softmax(out_channels)
 
-        self.maxpool = torch.nn.MaxPool2d(2)
+        self.maxpool = torch.nn.MaxPool2d(3)
         self.relu = torch.nn.ReLU()
 
     def concat(self, x1, x2):
-        return torch.cat([x1, x2], dim=2)
+        return torch.cat([x1, x2], dim=1)
 
     def forward(self, x):
         x1, x2, x3, x4, x5 = x.shape

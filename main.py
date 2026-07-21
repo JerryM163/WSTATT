@@ -16,7 +16,7 @@ from pathlib import Path
 import torch
 import numpy as np
 from sklearn.metrics import confusion_matrix, f1_score, accuracy_score, classification_report
-from Models.baseline import STATT, WSTATT
+from Models.cnn import STATT, WSTATT
 from data import get_data_loader
 
 torch.backends.cudnn.enabled = False
