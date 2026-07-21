@@ -56,8 +56,6 @@ class MCT_STATT(torch.nn.Module):
 
     def forward(self, x):
         print("Initially:", x.shape)
-        trans_out = self.transformer1(x, trans_out)
-        print("After 1st Transformer:", trans_out.shape)
 
         cnn_out = self.conv1_1(x)
         cnn_out = self.norm1_1(cnn_out)
@@ -65,44 +63,47 @@ class MCT_STATT(torch.nn.Module):
         cnn_out = self.norm1_2(cnn_out)
         print("After 1st CNN:", cnn_out.shape)
 
-        x = self.concat(trans_out, cnn_out)
-        print("After 1st Concat:", x.shape)
-        x = self.maxpool(x)
-        print("After 1st Maxpool:", x.shape)
+        self.transformer1(x, x)
+        print("After 1st Transformer:", x.shape)
 
-        trans_out = self.transformer2(x, trans_out)
-        print("After 2nd Transformer:", trans_out.shape)
+        concat = self.concat(cnn_out, x)
+        print("After 1st Concat:", concat.shape)
+        pooled = self.maxpool(concat)
+        print("After 1st Maxpool:", pooled.shape)
 
-        cnn_out = self.conv2_1(x)
+        cnn_out = self.conv2_1(pooled)
         cnn_out = self.norm2_1(cnn_out)
         cnn_out = self.conv2_2(cnn_out)
         cnn_out = self.norm2_2(cnn_out)
         print("After 2nd CNN:", cnn_out.shape)
 
-        x = self.concat(trans_out, cnn_out)
-        print("After 2nd Concat:", x.shape)
-        x = self.maxpool(x)
-        print("After 2nd Maxpool:", x.shape)
+        self.transformer2(pooled, x)
+        print("After 2nd Transformer:", x.shape)
 
-        trans_out = self.transformer3(x, trans_out)
-        print("After 3rd Transformer:", trans_out.shape)
+        concat = self.concat(cnn_out, x)
+        print("After 2nd Concat:", concat.shape)
+        pooled = self.maxpool(concat)
+        print("After 2nd Maxpool:", pooled.shape)
 
-        cnn_out = self.conv3_1(x)
+        cnn_out = self.conv3_1(pooled)
         cnn_out = self.norm3_1(cnn_out)
         cnn_out = self.conv3_2(cnn_out)
         cnn_out = self.norm3_2(cnn_out)
         print("After 3rd CNN:", cnn_out.shape)
 
-        x = self.concat(trans_out, cnn_out)
-        print("After 3rd Concat:", x.shape)
-        x = self.maxpool(x)
-        print("After 3rd Maxpool:", x.shape)
+        self.transformer3(pooled, x)
+        print("After 3rd Transformer:", x.shape)
 
-        x = self.linear(x)
-        print("After linear:", x.shape)
-        x = self.softmax(x)
+        concat = self.concat(cnn_out, x)
+        print("After 3rd Concat:", concat.shape)
+        pooled = self.maxpool(concat)
+        print("After 3rd Maxpool:", pooled.shape)
 
-        return x
+        linear = self.linear(pooled)
+        print("After linear:", linear.shape)
+        result = self.softmax(linear)
+
+        return result
 
 if __name__ == "__main__":
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
