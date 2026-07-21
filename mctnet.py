@@ -55,6 +55,9 @@ class MCT_STATT(torch.nn.Module):
         return torch.cat([x1, x2], dim=1)
 
     def forward(self, x):
+        x1, x2, x3, x4, x5 = x.shape
+        x = x.view(x1*x2*x3, x4, x5)
+
         print("Initially:", x.shape)
 
         cnn_out = self.conv1_1(x)
@@ -135,7 +138,6 @@ if __name__ == "__main__":
         optim.zero_grad()
 
         for batch, [image_patch, weather_patch, label_patch] in enumerate(data_loader):
-            print("Initially:", image_patch.shape)
 
             out = model(image_patch.to(device))
 
