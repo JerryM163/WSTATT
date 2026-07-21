@@ -1,17 +1,55 @@
 import time
 
 import torch
+import numpy as np
 
 from data import DataLoader, get_data_loader
 
-# TODO: Add parameters to module functions
+# TODO: Add positional encoding for the 24 timestamps
+# TODO: Potentially replace transformers with just transformer encoders
+# TODO: Potentially add dropout layers in the transformers
+
 # TODO: Build out the WSTATT version; figure out how the weather data is incorporated into the network
 
 class MCT_STATT(torch.nn.Module):
+    '''
+    Utilizes the joint capabilities of CNNs and Transformers to derive a full spatial
+    context for crop mapping.
+
+    Architecture:
+        Positional Encoder: ???????
+        CTFusion Modules: Same input independently processed by CNN and Transformer sub modules,
+            their result is then concatenated together and put through a max pooling operation
+        MLP: Multi-layer perceptron for final classification
+
+    '''
     def __init__(self, in_channels, out_channels):
+        '''Initializes the model'''
         super(MCT_STATT, self).__init__()
 
+        # --- CNN Sub Modules ---
+        # CNN 1
+        self.conv1_1 = torch.nn.Conv2d(10, 64, 3, padding=1)
+        self.norm1_1 = torch.nn.BatchNorm2d(64)
+        self.conv1_2 = torch.nn.Conv2d(64, 64, 3, padding=1)
+        self.norm1_2 = torch.nn.BatchNorm2d(64)
+
+        # CNN 2
+        self.conv2_1 = torch.nn.Conv1d(128, 128, 3, padding=1)
+        self.norm2_1 = torch.nn.BatchNorm1d(128)
+        self.conv2_2 = torch.nn.Conv1d(128, 128, 3, padding=1)
+        self.norm2_2 = torch.nn.BatchNorm1d(128)
+
+        # CNN 3
+        self.conv3_1 = torch.nn.Conv1d(256, 256, 3, padding=1)
+        self.norm3_1 = torch.nn.BatchNorm1d(256)
+        self.conv3_2 = torch.nn.Conv1d(256, 256, 3, padding=1)
+        self.norm3_2 = torch.nn.BatchNorm1d(256)
+
+        # --- Transformer Sub Modules ---
+        # Initial Embedding layer
         self.linear1 = torch.nn.Linear(10240, 64)
+        # Transformer 1
         self.transformer1 = torch.nn.Transformer( 
             d_model=64,
             nhead=8,
@@ -19,13 +57,7 @@ class MCT_STATT(torch.nn.Module):
             num_encoder_layers=2,
             batch_first=True
         )                                         
-
-        self.conv1_1 = torch.nn.Conv2d(10, 64, 3, padding=1)
-        self.norm1_1 = torch.nn.BatchNorm2d(64)
-
-        self.conv1_2 = torch.nn.Conv2d(64, 64, 3, padding=1)
-        self.norm1_2 = torch.nn.BatchNorm2d(64)
-
+        # Transformer 2
         self.transformer2 = torch.nn.Transformer(
             d_model=128,
             nhead=8,
@@ -33,13 +65,7 @@ class MCT_STATT(torch.nn.Module):
             num_encoder_layers=2,
             batch_first=True
         )
-
-        self.conv2_1 = torch.nn.Conv1d(128, 128, 3, padding=1)
-        self.norm2_1 = torch.nn.BatchNorm1d(128)
-
-        self.conv2_2 = torch.nn.Conv1d(128, 128, 3, padding=1)
-        self.norm2_2 = torch.nn.BatchNorm1d(128)
-
+        # Transformer 3
         self.transformer3 = torch.nn.Transformer(
             d_model=256,
             nhead=8,
@@ -48,15 +74,11 @@ class MCT_STATT(torch.nn.Module):
             batch_first=True
         )
 
-        self.conv3_1 = torch.nn.Conv1d(256, 256, 3, padding=1)
-        self.norm3_1 = torch.nn.BatchNorm1d(256)
-
-        self.conv3_2 = torch.nn.Conv1d(256, 256, 3, padding=1)
-        self.norm3_2 = torch.nn.BatchNorm1d(256)
-
+        # --- Multi-layer Perceptron Classifier
         self.mlp1 = torch.nn.Linear(512, 256)
         self.mlp2 = torch.nn.Linear(256, out_channels)
 
+        # --- Shared Operations
         self.maxpool = torch.nn.MaxPool1d(2)
         self.relu = torch.nn.ReLU()
 
@@ -65,6 +87,7 @@ class MCT_STATT(torch.nn.Module):
         return torch.cat([cnn, trans], dim=2)
 
     def forward(self, x):
+        ''' Processes sentinel-2 data'''
         # Initial shape of 'x' is: (16, 24, 10, 32, 32)
         batches, timestamps, channels, height, width = x.shape
 
@@ -159,7 +182,6 @@ class MCT_STATT(torch.nn.Module):
         # Temporal pooling again: (16, 512, 3)
         pooled = self.maxpool(concatenated)
 
-
         # Average over time dimension: (16, 512)
         pooled = pooled.mean(dim=2)
 
@@ -202,12 +224,33 @@ if __name__ == "__main__":
     grids = ["T11SKA_2019_7_2"]
 
     for grid_num, grid in enumerate(grids):
+        print("\x1b[2K" + f"Getting data loader for grid {grid}...", end="\r", flush=True)
         data_loader = get_data_loader(grid, batch_size)
 
-        optim.zero_grad()
+        grid_loss = 0  # Accumulate loss for this grid
 
+        # Process all batches in grid
         for batch, [image_patch, weather_patch, label_patch] in enumerate(data_loader):
+            print("\x1b[2K" + f"Testing on {grid}'s batch {batch + 1}", end="\r", flush=True)
 
-            out = model(image_patch.to(device))
+            # Forward pass WITHOUT gradient calculation (saves memory)
+            image_tensor = image_patch.to(device, non_blocking=True)
+            weather_tensor = weather_patch.to(device, non_blocking=True)
 
-            optim.step()
+            with torch.no_grad():
+                out = model(image_tensor)
+
+            # Prepare labels for loss calculation
+            label_patch_device = label_patch.type(torch.long).to(device)
+
+            # Calculate loss
+            batch_loss = criterion(out, label_patch_device)
+
+            grid_loss += batch_loss.item()  # Accumulate batch loss
+
+        # Calculate average loss for current grid
+        statt_grid_loss = statt_grid_loss / (batch + 1)
+        wstatt_grid_loss = wstatt_grid_loss / (batch + 1)
+        print("\x1b[2K" + f'Grid Num: {grid_num:02} Grid: {grid} STATT Loss: {statt_grid_loss:.4f} WSTATT Loss: {wstatt_grid_loss:.4f}')
+        statt_epoch_loss += statt_grid_loss
+        wstatt_epoch_loss += wstatt_grid_loss
