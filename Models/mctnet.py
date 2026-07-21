@@ -56,8 +56,7 @@ class MCT_STATT(torch.nn.Module):
 
     def forward(self, x):
         print("Initially:", x.shape)
-        trans_out = []
-        self.transformer1(x, trans_out)
+        trans_out = self.transformer1(x, trans_out)
         print("After 1st Transformer:", trans_out.shape)
 
         cnn_out = self.conv1_1(x)
@@ -71,7 +70,7 @@ class MCT_STATT(torch.nn.Module):
         x = self.maxpool(x)
         print("After 1st Maxpool:", x.shape)
 
-        self.transformer2(x, trans_out)
+        trans_out = self.transformer2(x, trans_out)
         print("After 2nd Transformer:", trans_out.shape)
 
         cnn_out = self.conv2_1(x)
@@ -85,7 +84,7 @@ class MCT_STATT(torch.nn.Module):
         x = self.maxpool(x)
         print("After 2nd Maxpool:", x.shape)
 
-        self.transformer3(x, trans_out)
+        trans_out = self.transformer3(x, trans_out)
         print("After 3rd Transformer:", trans_out.shape)
 
         cnn_out = self.conv3_1(x)
