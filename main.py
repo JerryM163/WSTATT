@@ -10,7 +10,7 @@ conda_lib = "/users/0/hinsv006/miniconda3/envs/carson/lib"
 os.environ["LD_LIBRARY_PATH"] = f"{conda_lib}:/lib64"
 sys.path.insert(0, conda_lib)
 
-import random
+import random  
 from re import split
 from pathlib import Path
 import torch
@@ -75,6 +75,7 @@ if __name__ == "__main__":
     )
     if os.path.isfile("Wstatt.pt"):
         wstatt.load_state_dict(torch.load("Wstatt.pt"),strict = False)
+        print("WSTATT Model Loaded")
     else:
         print(f"WSTATT Model Complete")
 
@@ -132,7 +133,7 @@ if __name__ == "__main__":
 
         statt_grid_loss = statt_grid_loss / (batch + 1) 
         wstatt_grid_loss = wstatt_grid_loss / (batch + 1)
-        print("\x1b[2K" + f'Grid Num: {grid_num} Grid: {grid} STATT Loss: {statt_grid_loss:.4f} WSTATT: {wstatt_grid_loss:.4f}')
+        print("\x1b[2K" + f'Grid Num: {grid_num + 1} Grid: {grid} STATT Loss: {statt_grid_loss:.4f} WSTATT: {wstatt_grid_loss:.4f}')
 
         statt_epoch_loss += statt_grid_loss
         wstatt_epoch_loss += wstatt_grid_loss
