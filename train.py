@@ -6,18 +6,22 @@ import sys
 os.environ.pop("LD_LIBRARY_PATH", None)
 
 # Force the environment link loader to stick strictly to the conda environment
-conda_lib = "/users/0/hinsv006/miniconda3/envs/carson/lib"
+conda_lib = "/users/0/hinsv006/miniconda3/envs/jerry/lib"
 os.environ["LD_LIBRARY_PATH"] = f"{conda_lib}:/lib64"
 sys.path.insert(0, conda_lib)
 
-import random
+import random  
+import time
 from re import split
 from pathlib import Path
 import torch
 import numpy as np
 from sklearn.metrics import confusion_matrix, f1_score, accuracy_score, classification_report
-from Models.baseline import STATT, WSTATT
 from data import get_data_loader
+
+# --- MODEL IMPORT ---
+from Models.statt import STATT, WSTATT
+from Models.mctnet import CT_NET
 
 torch.backends.cudnn.enabled = False
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -27,6 +31,9 @@ if __name__ == "__main__":
     in_channels = 10
     in_channels_weather = 7
     out_channels = 33
+
+    bands = 10
+    classes = 33
 
     unknown_class = 100
     learning_rate = 0.0001
@@ -58,105 +65,99 @@ if __name__ == "__main__":
     test_dataset = split_dataset[split_idx:]
 
     print("########## BUILDING MODELS ##########")
-    statt = STATT(
-        in_channels=in_channels,
-        out_channels=out_channels
-    )
-    if os.path.isfile("Statt.pt"):
-        statt.load_state_dict(torch.load("Statt.pt"),strict = False)
-        print("STATT Model Loaded")
-    else:
-        print(f"STATT Model Complete")
+    # --- STATT Baseline Models ---
+    #statt = CNN_STATT(
+    #    in_channels=in_channels,
+    #    out_channels=out_channels
+    #)
+    #if os.path.isfile("Statt.pt"):
+    #    statt.load_state_dict(torch.load("Statt.pt"),strict = False)
+    #    print("STATT Model Loaded")
+    #else:
+    #    print(f"STATT Model Complete")
+    #wstatt = CNN_WSTATT(
+    #    in_channels=in_channels,
+    #    in_channels_w=in_channels_weather,
+    #    out_channels=out_channels
+    #)
+    #if os.path.isfile("Wstatt.pt"):
+    #    wstatt.load_state_dict(torch.load("Wstatt.pt"),strict = False)
+    #    print("WSTATT Model Loaded")
+    #else:
+    #    print(f"WSTATT Model Complete")
 
-    wstatt = WSTATT(
-        in_channels=in_channels,
-        in_channels_w=in_channels_weather,
-        out_channels=out_channels
+    # --- CT Net Models ----
+    model = CT_NET(
+        bands=bands,
+        classes=classes,
     )
-    if os.path.isfile("Wstatt.pt"):
-        wstatt.load_state_dict(torch.load("Wstatt.pt"),strict = False)
+    if os.path.isfile("CTNet.pt"):
+        model.load_state_dict(torch.load("CTNet.pt"),strict = False)
+        print("CT Net Model Loaded")
     else:
-        print(f"WSTATT Model Complete")
+        print(f"CT Net Model Complete")
 
     print("########## TRAINING MODELS ##########")
-    statt = statt.to(device)
-    wstatt = wstatt.to(device)
+    start_time = time.time()
+
+    model = model.to(device)
 
     criterion = torch.nn.CrossEntropyLoss(ignore_index=unknown_class)
 
-    statt_optim = torch.optim.Adam(statt.parameters(), lr=learning_rate)
-    wstatt_optim = torch.optim.Adam(wstatt.parameters(), lr=learning_rate)
+    optim = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
-    statt_train_loss = []
-    wstatt_train_loss = []
+    train_loss = []
 
-    statt.train()
-    wstatt.train()
+    model.train()
 
-    statt_epoch_loss = 0
-    wstatt_epoch_loss = 0
+    epoch_loss = 0
 
     sample_grids = random.sample(train_dataset, NUM_SAMPLES)
 
     for grid_num, grid in enumerate(sample_grids):
+        grid_time = time.time()
 
         print("\x1b[2K" + f"Getting data loader for grid {grid}...", end="\r", flush=True)
         data_loader = get_data_loader(grid, batch_size)
 
-        statt_grid_loss = 0
-        wstatt_grid_loss = 0
+        grid_loss = 0
 
         for batch, [image_patch, weather_patch, label_patch] in enumerate(data_loader):
             print("\x1b[2K" + f"Training on {grid}'s batch {batch + 1}", end="\r", flush=True)
-            statt_optim.zero_grad()
-            wstatt_optim.zero_grad()
+            optim.zero_grad()
 
             image_tensor = image_patch.to(device, non_blocking=True)
             weather_tensor = weather_patch.to(device, non_blocking=True)
             label_patch = label_patch.type(torch.long).to(device, non_blocking=True)
 
-            statt_out = statt(image_tensor)
-            wstatt_out = wstatt(image_tensor, weather_tensor)
+            out = model(image_tensor)
 
-            statt_batch_loss = criterion(statt_out, label_patch)
-            wstatt_batch_loss = criterion(wstatt_out, label_patch)
+            batch_loss = criterion(out, label_patch)
 
-            statt_batch_loss.backward()
-            wstatt_batch_loss.backward()
+            batch_loss.backward()
 
-            statt_optim.step()
-            wstatt_optim.step()
+            optim.step()
 
-            statt_grid_loss += statt_batch_loss.item()
-            wstatt_grid_loss += wstatt_batch_loss.item()
+            grid_loss += batch_loss.item()
 
-        statt_grid_loss = statt_grid_loss / (batch + 1) 
-        wstatt_grid_loss = wstatt_grid_loss / (batch + 1)
-        print("\x1b[2K" + f'Grid Num: {grid_num} Grid: {grid} STATT Loss: {statt_grid_loss:.4f} WSTATT: {wstatt_grid_loss:.4f}')
+        grid_loss = grid_loss / (batch + 1) 
+        print("\x1b[2K" + f'Grid Num: {grid_num + 1}, Grid: {grid}, Loss: {grid_loss:.4f}, Time: {(time.time() - grid_time):.2f}')
 
-        statt_epoch_loss += statt_grid_loss
-        wstatt_epoch_loss += wstatt_grid_loss
+        epoch_loss += grid_loss
 
-    statt_epoch_loss = statt_epoch_loss / (grid_num + 1)
-    wstatt_epoch_loss = wstatt_epoch_loss / (grid_num + 1)
-    print(f'\tSTATT Test Loss: {statt_epoch_loss:.4f} WSTATT Test Loss: {wstatt_epoch_loss:.4f}')
+    epoch_loss = epoch_loss / (grid_num + 1)
+    print(f'\tTest Loss: {epoch_loss:.4f}, Time: {(time.time() - start_time):.2f}')
 
-    statt_train_loss.append(statt_epoch_loss)
-    wstatt_train_loss.append(wstatt_epoch_loss)
+    train_loss.append(epoch_loss)
 
-    torch.save(statt.state_dict(), "Statt.pt")
-    torch.save(wstatt.state_dict(), "Wstatt.pt")
+    #torch.save(model.state_dict(), "Statt.pt")
+    #torch.save(model.state_dict(), "Wstatt.pt")
+    torch.save(model.state_dict(), "CTNet.pt")
 
 '''
 print("########## TEST MODELS ##########")
-statt = STATT(
+ct_net = CNN_STATT(
     in_channels=in_channels,
-    out_channels=out_channels
-)
-
-wstatt = WSTATT(
-    in_channels=in_channels,
-    in_channels_w=in_channels_weather,
     out_channels=out_channels
 )
 
@@ -204,6 +205,7 @@ for grid_num, grid in enumerate(sample_grids):
     # Process all batches in grid
     for batch, [image_patch, weather_patch, label_patch] in enumerate(data_loader):
         print("\x1b[2K" + f"Testing on {grid}'s batch {batch + 1}", end="\r", flush=True)
+
         # Forward pass WITHOUT gradient calculation (saves memory)
         image_tensor = image_patch.to(device, non_blocking=True)
         weather_tensor = weather_patch.to(device, non_blocking=True)
