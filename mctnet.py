@@ -239,6 +239,7 @@ if __name__ == "__main__":
 
             with torch.no_grad():
                 out = model(image_tensor)
+                print(out.shape)
 
             # Prepare labels for loss calculation
             label_patch_device = label_patch.type(torch.long).to(device)
