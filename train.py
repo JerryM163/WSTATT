@@ -20,7 +20,7 @@ from sklearn.metrics import confusion_matrix, f1_score, accuracy_score, classifi
 from data import get_data_loader
 
 # --- MODEL IMPORT ---
-from Models.statt import WSTATT
+from Models.statt import STATT, WSTATT
 from Models.mctnet import CT_NET
 
 torch.backends.cudnn.enabled = False
