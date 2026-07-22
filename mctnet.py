@@ -236,16 +236,16 @@ if __name__ == "__main__":
             # Forward pass WITHOUT gradient calculation (saves memory)
             image_tensor = image_patch.to(device, non_blocking=True)
             weather_tensor = weather_patch.to(device, non_blocking=True)
+            label_tensor = label_patch.type(torch.long).to(device)
+
+            print("Label shape:", label_tensor.shape)
 
             with torch.no_grad():
                 out = model(image_tensor)
                 print(out.shape)
 
-            # Prepare labels for loss calculation
-            label_patch_device = label_patch.type(torch.long).to(device)
-
             # Calculate loss
-            batch_loss = criterion(out, label_patch_device)
+            batch_loss = criterion(out, label_tensor)
 
             grid_loss += batch_loss.item()  # Accumulate batch loss
 
