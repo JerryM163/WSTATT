@@ -21,6 +21,7 @@ from data import get_data_loader
 
 # --- MODEL IMPORT ---
 from Models.statt import WSTATT
+from Models.mctnet import CT_NET
 
 torch.backends.cudnn.enabled = False
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -30,6 +31,9 @@ if __name__ == "__main__":
     in_channels = 10
     in_channels_weather = 7
     out_channels = 33
+
+    bands = 10
+    classes = 33
 
     unknown_class = 100
     learning_rate = 0.0001
@@ -60,45 +64,51 @@ if __name__ == "__main__":
     val_dataset = split_dataset[:split_idx]
     test_dataset = split_dataset[split_idx:]
 
-    '''
     print("########## BUILDING MODELS ##########")
-    statt = CNN_STATT(
-        in_channels=in_channels,
-        out_channels=out_channels
-    )
-    if os.path.isfile("Statt.pt"):
-        statt.load_state_dict(torch.load("Statt.pt"),strict = False)
-        print("STATT Model Loaded")
-    else:
-        print(f"STATT Model Complete")
+    # --- STATT Baseline Models ---
+    #statt = CNN_STATT(
+    #    in_channels=in_channels,
+    #    out_channels=out_channels
+    #)
+    #if os.path.isfile("Statt.pt"):
+    #    statt.load_state_dict(torch.load("Statt.pt"),strict = False)
+    #    print("STATT Model Loaded")
+    #else:
+    #    print(f"STATT Model Complete")
+    #wstatt = CNN_WSTATT(
+    #    in_channels=in_channels,
+    #    in_channels_w=in_channels_weather,
+    #    out_channels=out_channels
+    #)
+    #if os.path.isfile("Wstatt.pt"):
+    #    wstatt.load_state_dict(torch.load("Wstatt.pt"),strict = False)
+    #    print("WSTATT Model Loaded")
+    #else:
+    #    print(f"WSTATT Model Complete")
 
-    wstatt = CNN_WSTATT(
-        in_channels=in_channels,
-        in_channels_w=in_channels_weather,
-        out_channels=out_channels
+    # --- CT Net Models ----
+    model = CT_NET(
+        bands=bands,
+        classes=classes,
     )
-    if os.path.isfile("Wstatt.pt"):
-        wstatt.load_state_dict(torch.load("Wstatt.pt"),strict = False)
-        print("WSTATT Model Loaded")
+    if os.path.isfile("CTNet.pt"):
+        model.load_state_dict(torch.load("CTNet.pt"),strict = False)
+        print("CT Net Model Loaded")
     else:
-        print(f"WSTATT Model Complete")
+        print(f"CT Net Model Complete")
 
     print("########## TRAINING MODELS ##########")
     start_time = time.time()
 
-    statt = statt.to(device)
-    wstatt = wstatt.to(device)
+    model = model.to(device)
 
     criterion = torch.nn.CrossEntropyLoss(ignore_index=unknown_class)
 
-    statt_optim = torch.optim.Adam(statt.parameters(), lr=learning_rate)
-    wstatt_optim = torch.optim.Adam(wstatt.parameters(), lr=learning_rate)
+    optim = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
-    statt_train_loss = []
-    wstatt_train_loss = []
+    train_loss = []
 
-    statt.train()
-    wstatt.train()
+    model.train()
 
     statt_epoch_loss = 0
     wstatt_epoch_loss = 0
@@ -116,55 +126,40 @@ if __name__ == "__main__":
 
         for batch, [image_patch, weather_patch, label_patch] in enumerate(data_loader):
             print("\x1b[2K" + f"Training on {grid}'s batch {batch + 1}", end="\r", flush=True)
-            statt_optim.zero_grad()
-            wstatt_optim.zero_grad()
+            optim.zero_grad()
 
             image_tensor = image_patch.to(device, non_blocking=True)
             weather_tensor = weather_patch.to(device, non_blocking=True)
             label_patch = label_patch.type(torch.long).to(device, non_blocking=True)
 
-            statt_out = statt(image_tensor)
-            wstatt_out = wstatt(image_tensor, weather_tensor)
+            out = model(image_tensor)
 
-            statt_batch_loss = criterion(statt_out, label_patch)
-            wstatt_batch_loss = criterion(wstatt_out, label_patch)
+            batch_loss = criterion(out, label_patch)
 
-            statt_batch_loss.backward()
-            wstatt_batch_loss.backward()
+            batch_loss.backward()
 
-            statt_optim.step()
-            wstatt_optim.step()
+            optim.step()
 
-            statt_grid_loss += statt_batch_loss.item()
-            wstatt_grid_loss += wstatt_batch_loss.item()
+            grid_loss += batch_loss.item()
 
-        statt_grid_loss = statt_grid_loss / (batch + 1) 
-        wstatt_grid_loss = wstatt_grid_loss / (batch + 1)
-        print("\x1b[2K" + f'Grid Num: {grid_num + 1} Grid: {grid} STATT Loss: {statt_grid_loss:.4f} WSTATT: {wstatt_grid_loss:.4f} Time: {(time.time() - grid_time):.2f}')
+        grid_loss = grid_loss / (batch + 1) 
+        print("\x1b[2K" + f'Grid Num: {grid_num + 1}, Grid: {grid}, Loss: {grid_loss:.4f}, Time: {(time.time() - grid_time):.2f}')
 
-        statt_epoch_loss += statt_grid_loss
-        wstatt_epoch_loss += wstatt_grid_loss
+        epoch_loss += grid_loss
 
-    statt_epoch_loss = statt_epoch_loss / (grid_num + 1)
-    wstatt_epoch_loss = wstatt_epoch_loss / (grid_num + 1)
-    print(f'\tSTATT Test Loss: {statt_epoch_loss:.4f} WSTATT Test Loss: {wstatt_epoch_loss:.4f} Time: {(time.time() - start_time):.2f}')
+    epoch_loss = epoch_loss / (grid_num + 1)
+    print(f'\tTest Loss: {statt_epoch_loss:.4f}, Time: {(time.time() - start_time):.2f}')
 
-    statt_train_loss.append(statt_epoch_loss)
-    wstatt_train_loss.append(wstatt_epoch_loss)
+    train_loss.append(statt_epoch_loss)
 
-    torch.save(statt.state_dict(), "Statt.pt")
-    torch.save(wstatt.state_dict(), "Wstatt.pt")
+    #torch.save(model.state_dict(), "Statt.pt")
+    #torch.save(model.state_dict(), "Wstatt.pt")
+    torch.save(model.state_dict(), "CTNet.pt")
+
 '''
-
 print("########## TEST MODELS ##########")
-statt = CNN_STATT(
+ct_net = CNN_STATT(
     in_channels=in_channels,
-    out_channels=out_channels
-)
-
-wstatt = CNN_WSTATT(
-    in_channels=in_channels,
-    in_channels_w=in_channels_weather,
     out_channels=out_channels
 )
 
@@ -302,3 +297,4 @@ print(classification_report(label_array, statt_pred_array, target_names=filtered
 
 print("## WSTATT Classification Report ##")
 print(classification_report(label_array, wstatt_pred_array, target_names=filtered_class_names, digits=4, labels=valid_labels))
+'''

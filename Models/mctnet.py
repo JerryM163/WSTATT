@@ -375,8 +375,6 @@ if __name__ == "__main__":
             grid_loss += batch_loss.item()  # Accumulate batch loss
 
         # Calculate average loss for current grid
-        statt_grid_loss = statt_grid_loss / (batch + 1)
-        wstatt_grid_loss = wstatt_grid_loss / (batch + 1)
-        print("\x1b[2K" + f'Grid Num: {grid_num:02} Grid: {grid} STATT Loss: {statt_grid_loss:.4f} WSTATT Loss: {wstatt_grid_loss:.4f}')
-        statt_epoch_loss += statt_grid_loss
-        wstatt_epoch_loss += wstatt_grid_loss
+        grid_loss = grid_loss / (batch + 1)
+        print("\x1b[2K" + f'Grid Num: {grid_num:02}, Grid: {grid}, Loss: {grid_loss:.4f}')
+        epoch_loss += grid_loss
