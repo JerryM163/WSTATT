@@ -110,8 +110,7 @@ if __name__ == "__main__":
 
     model.train()
 
-    statt_epoch_loss = 0
-    wstatt_epoch_loss = 0
+    epoch_loss = 0
 
     sample_grids = random.sample(train_dataset, NUM_SAMPLES)
 
@@ -147,9 +146,9 @@ if __name__ == "__main__":
         epoch_loss += grid_loss
 
     epoch_loss = epoch_loss / (grid_num + 1)
-    print(f'\tTest Loss: {statt_epoch_loss:.4f}, Time: {(time.time() - start_time):.2f}')
+    print(f'\tTest Loss: {epoch_loss:.4f}, Time: {(time.time() - start_time):.2f}')
 
-    train_loss.append(statt_epoch_loss)
+    train_loss.append(epoch_loss)
 
     #torch.save(model.state_dict(), "Statt.pt")
     #torch.save(model.state_dict(), "Wstatt.pt")
