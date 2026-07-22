@@ -63,7 +63,6 @@ if __name__ == "__main__":
     val_dataset = split_dataset[:split_idx]
     test_dataset = split_dataset[split_idx:]
 
-    '''
     print("########## BUILDING MODELS ##########")
     # --- STATT Baseline Models ---
     #statt = CNN_STATT(
@@ -153,7 +152,6 @@ if __name__ == "__main__":
     #torch.save(model.state_dict(), "Statt.pt")
     #torch.save(model.state_dict(), "Wstatt.pt")
     torch.save(model.state_dict(), "CTNet.pt")
-    '''
 
     print("########## TEST MODELS ##########")
     model = CT_NET(
