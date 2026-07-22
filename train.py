@@ -121,8 +121,7 @@ if __name__ == "__main__":
         print("\x1b[2K" + f"Getting data loader for grid {grid}...", end="\r", flush=True)
         data_loader = get_data_loader(grid, batch_size)
 
-        statt_grid_loss = 0
-        wstatt_grid_loss = 0
+        grid_loss = 0
 
         for batch, [image_patch, weather_patch, label_patch] in enumerate(data_loader):
             print("\x1b[2K" + f"Training on {grid}'s batch {batch + 1}", end="\r", flush=True)
