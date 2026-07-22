@@ -78,7 +78,7 @@ def create_patches(grid):
     # Load label data (2D array: [height, width] - ground truth for each pixel)
     label = np.load(os.path.join(combined_label_data_dir, grid + "_combined_label.npy"))
 
-    # Load weather data (3D array: [timesteps, weather_features])
+    # Load weather data (3D array: [365, 7, 1, 1])
     weather = np.load(os.path.join(weather_data_dir, grid + '_daymet_10980_global_normalised_year_day_average_grid_array.npy'))
 
     # Handle missing values in weather data by replacing NaNs with 0
@@ -167,7 +167,7 @@ def get_data_loader(grid, batch_size):
         drop_last=False
     )
 
-def w_create_patches(grid, band):
+def w_create_patches(grid, bands, timestamps):
     """Create image patches, weather data, and label patches for a given grid location.
 
     Args:
@@ -180,6 +180,16 @@ def w_create_patches(grid, band):
     # Load satellite image data (4D array: [timesteps, channels, height, width])
     image = np.load(os.path.join(sat_data_dir, grid + "_image.npy"))
 
+    timesteps = []
+    step = 24 // timestamps
+
+    # Populates timesteps with 'timestamps' number of evenly-spaced indexes 
+    for idx in range(0,24,step):
+        timesteps.append(idx)
+
+    # Reassigns image to only the selected timesteps based on 'timestamps' passed on
+    image = image[timesteps,:,:,:]
+
     # Load label data (2D array: [height, width] - ground truth for each pixel)
     label = np.load(os.path.join(combined_label_data_dir, grid + "_combined_label.npy"))
 
@@ -187,7 +197,7 @@ def w_create_patches(grid, band):
     weather = np.load(os.path.join(weather_data_dir, grid + '_daymet_10980_global_normalised_year_day_average_grid_array.npy'))
 
     # Selects the weather array at 1 band (timestamps,band,features)
-    weather = weather[:,band:band+1,:,:]
+    weather = weather[:,bands,:,:]
 
     # Handle missing values in weather data by replacing NaNs with 0
     weather[np.isnan(weather)] = 0
@@ -249,7 +259,7 @@ def w_create_patches(grid, band):
 
     return image_patches, weather_patches, label_patches
 
-def w_get_data_loader(grid, batch_size, band):
+def w_get_data_loader(grid, batch_size, bands, timestamps):
     '''
     Args:
         grid - A single WSTATT data sample (eg. T11SKA_2018_0_0) as a string
@@ -260,7 +270,7 @@ def w_get_data_loader(grid, batch_size, band):
     if grid in GRID_CACHE:
         image_patches, weather_patches, label_patches = GRID_CACHE[grid]
     else:
-        image_patches, weather_patches, label_patches = w_create_patches(grid, band)
+        image_patches, weather_patches, label_patches = w_create_patches(grid, band, timestamps)
         GRID_CACHE[grid] = (image_patches, weather_patches, label_patches)
 
     data = SEGMENTATION(image_patches, weather_patches, label_patches)

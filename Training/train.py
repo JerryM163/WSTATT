@@ -16,7 +16,6 @@ from re import split
 from pathlib import Path
 import torch
 import numpy as np
-from sklearn.metrics import confusion_matrix, f1_score, accuracy_score, classification_report
 from data import get_data_loader
 
 # --- MODEL IMPORT ---
@@ -29,7 +28,7 @@ print("Active Device Status:", "cuda" if torch.cuda.is_available() else "cpu")
 
 if __name__ == "__main__":
     in_channels = 10
-    in_channels_weather = 7
+    in_channels_weather = 1
     out_channels = 33
 
     bands = 10

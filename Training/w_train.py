@@ -41,8 +41,10 @@ if __name__ == "__main__":
 
     NUM_SAMPLES = 32
 
-    bands = ["dayl", "prcp", "srad", "swe", "tmax", "tmin", "vp"]
-    band = 0
+    weather_bands = ["dayl", "prcp", "srad", "swe", "tmax", "tmin", "vp"]
+    bands = [0, 1, 2, 3, 4, 5, 6]
+
+    timestamps = 24
 
     # List of all possible grid names in the google drive folder, based on their naming conventions
     dataset = [
@@ -96,7 +98,7 @@ if __name__ == "__main__":
         grid_time = time.time()
 
         print("\x1b[2K" + f"Getting data loader for grid {grid}...", end="\r", flush=True)
-        data_loader = w_get_data_loader(grid, batch_size, band)
+        data_loader = w_get_data_loader(grid, batch_size, bands, timestamps)
 
         grid_loss = 0
 
@@ -124,7 +126,7 @@ if __name__ == "__main__":
         epoch_loss += grid_loss
 
     epoch_loss = epoch_loss / (grid_num + 1)
-    print(f'\tBand: {bands[band]}, Test Loss: {epoch_loss:.4f}, Epoch Time: {(time.time() - start_time):.2f},')
+    print(f'\tBand(s): {bands}, Test Loss: {epoch_loss:.4f}, Epoch Time: {(time.time() - start_time):.2f},')
 
     train_loss.append(epoch_loss)
 
