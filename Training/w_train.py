@@ -46,24 +46,31 @@ if __name__ == "__main__":
 
     timestamps = 24
 
+
+    #Randomized training data
     # List of all possible grid names in the google drive folder, based on their naming conventions
-    dataset = [
-        f"T11SKA_{year}_{first_digit}_{second_digit}"
-        for year in (2018, 2019, 2020)
-        for first_digit in range(10)
-        for second_digit in range(10)
-    ]
+    # dataset = [
+    #     f"T11SKA_{year}_{first_digit}_{second_digit}"
+    #     for year in (2018, 2019, 2020)
+    #     for first_digit in range(10)
+    #     for second_digit in range(10)
+    # ]
 
-    shuffled = random.sample(dataset, len(dataset))
-    split_idx = int(len(shuffled) * 0.6)
+    # Load the provided train datas.
+    train_dataset = np.load(r"../WSTATT_DATA/DISTRIBUTION/T11SKA/train_set_T11SKA_DISTRI1.npy")
+    val_dataset = np.load(r"../WSTATT_DATA/DISTRIBUTION/T11SKA/validation_set_T11SKA_DISTRI1.npy")
+    test_dataset = np.load(r"../WSTATT_DATA/DISTRIBUTION/T11SKA/test_set_T11SKA_DISTRI1.npy")
+
+    # shuffled = random.sample(dataset, len(dataset))
+    # split_idx = int(len(shuffled) * 0.6)
     
-    train_dataset = shuffled[:split_idx]
+    # train_dataset = shuffled[:split_idx]
 
-    split_dataset = shuffled[split_idx:]
-    split_idx = int(len(split_dataset) * 0.5)
+    # split_dataset = shuffled[split_idx:]
+    # split_idx = int(len(split_dataset) * 0.5)
 
-    val_dataset = split_dataset[:split_idx]
-    test_dataset = split_dataset[split_idx:]
+    # val_dataset = split_dataset[:split_idx]
+    # test_dataset = split_dataset[split_idx:]
 
     print("########## BUILDING MODEL ##########")
     wstatt = WSTATT(

@@ -6,7 +6,7 @@ import sys
 os.environ.pop("LD_LIBRARY_PATH", None)
 
 # Force the environment link loader to stick strictly to the conda environment
-conda_lib = "/users/0/hinsv006/miniconda3/envs/carson/lib"
+conda_lib = "/users/0/hinsv006/miniconda3/envs/jerry/lib"
 os.environ["LD_LIBRARY_PATH"] = f"{conda_lib}:/lib64"
 sys.path.insert(0, conda_lib)
 
