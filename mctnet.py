@@ -43,7 +43,7 @@ class CT_NET(torch.nn.Module):
                 64,
                 64,
                 kernel_size=3,
-                paddinh=1,
+                padding=1,
             ),
             torch.nn.BatchNorm2d(64),
             torch.nn.ReLU(),
@@ -72,7 +72,7 @@ class CT_NET(torch.nn.Module):
                 128,
                 128,
                 kernel_size=3,
-                paddinh=1,
+                padding=1,
             ),
             torch.nn.BatchNorm2d(128),
             torch.nn.ReLU(),
@@ -121,6 +121,27 @@ class CT_NET(torch.nn.Module):
 
         # --- Pooling ---
         self.pool = torch.nn.MaxPool2d(2)
+
+        # --- Fusion ---
+        self.fusion = torch.nn.Sequential(
+            torch.nn.Conv2d(
+                512, 
+                256, 
+                kernel_size=3, 
+                padding=1
+            ),
+            torch.nn.BatchNorm2d(256),
+            torch.nn.ReLU(),
+
+            torch.nn.Conv2d(
+                256, 
+                256, 
+                kernel_size=3, 
+                padding=1
+            ),
+            torch.nn.BatchNorm2d(256),
+            torch.nn.ReLU()
+        )
 
         # --- Decoder ---
         self.decoder1 = torch.nn.Conv2d(
@@ -189,7 +210,7 @@ class CT_NET(torch.nn.Module):
         cnn_out = self.cnn1(cnn_x)
 
         # Reshape CNN output to original with updated channels: (16,24,64,32,32)
-        cnn_out = cnn_out.reshape(batch, timestamps, 64, height, width)
+        cnn_out = cnn_out.reshape(batches, timestamps, 64, height, width)
 
         # Collapse CNN output along temporal dimension to match transformer output: (16,64,32,32)
         cnn_out = cnn_out.mean(dim=1)
@@ -223,7 +244,7 @@ class CT_NET(torch.nn.Module):
         trans_input = self.embed_layer2(trans_input)
 
         # Pass through the 2nd transformer: (16,256,128)
-        trans_out = self.transformer2(trans_input)
+        trans_out = self.trans2(trans_input)
 
         # Reshapes transformer output: (16,16,16,128)
         trans_out = trans_out.reshape(batches, height, width, 128)
@@ -241,25 +262,65 @@ class CT_NET(torch.nn.Module):
         # Pass to the 3rd CNN sub module: (16,256,8,8)
         cnn_out = self.cnn3(x)
 
-        # Permute input to send to Transformer: (16,16,16,128)
+        # Permute input to send to Transformer: (16,8,8,256)
         trans_input = x.permute(0, 2, 3, 1)
 
         batches, height, width, channels = trans_input.shape
 
-        # Rearrange input: (16,256,128)
+        # Rearrange input: (16,64,256)
         trans_input = trans_input.reshape(batches, height*width, channels)
 
-        # Create an embedding to pass to the transformer: (16,256,128)
-        trans_input = self.embed_layer2(trans_input)
+        # Create an embedding to pass to the transformer: (16,64,256)
+        trans_input = self.embed_layer3(trans_input)
 
-        # Pass through the 2nd transformer: (16,256,128)
-        trans_out = self.transformer2(trans_input)
+        # Pass through the 3rd transformer: (16,64,256)
+        trans_out = self.trans3(trans_input)
 
-        # Reshapes transformer output: (16,16,16,128)
-        trans_out = trans_out.reshape(batches, height, width, 128)
+        # Reshapes transformer output: (16,8,8,256)
+        trans_out = trans_out.reshape(batches, height, width, 256)
 
-        # Permutes shape to be equal to the CNN's output: (16,128,16,16)
+        # Permutes shape to be equal to the CNN's output: (16,256,8,8)
         trans_out = trans_out.permute(0,3,1,2)
+
+        # Combines CNN and Transformer outputs: (16,512,8,8)
+        x = torch.concat([cnn_out, trans_out], dim=1)
+
+        # --- Fusion Block ---
+        # Prepare the output for the decoder and learn new spatial relationships: (16,256,8,8)
+        x = self.fusion(x)
+
+        # --- Decoder ---
+        # Double height and width (16,256,16,16)
+        x = torch.nn.functional.interpolate(
+            x,
+            scale_factor=2,
+            mode="bilinear",
+            align_corners=False,
+        )
+
+        # Conv decoder for the channels: (16,128,16,16)
+        x = self.decoder1(x)
+
+        x = torch.nn.functional.relu(x)
+
+        # Double height and width (16,128,32,32)
+        x = torch.nn.functional.interpolate(
+            x,
+            scale_factor=2,
+            mode="bilinear",
+            align_corners=False,
+        )
+
+        # Conv decoder for channels: (16,64,32,32)
+        x = self.decoder2(x)
+
+        x = torch.nn.functional.relu(x)
+
+        # --- Classifier ---
+        # Get pixel-wise predictions: (16,33,32,32)
+        result = self.classifier(x)
+
+        return result
        
 
 class MCT_WSTATT(torch.nn.Module):
@@ -273,16 +334,13 @@ if __name__ == "__main__":
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     print("Active Device Status:", "cuda" if torch.cuda.is_available() else "cpu")
 
-    in_channels = 32
-    out_channels = 33
+    bands = 10
+    classes = 33
     unknown_class = 100
     learning_rate = 0.0001
     batch_size = 16
 
-    model = MCT_STATT(
-        in_channels=in_channels, 
-        out_channels=out_channels
-    )
+    model = CT_NET(bands, classes)
 
     model.to(device)
 
@@ -308,11 +366,8 @@ if __name__ == "__main__":
             weather_tensor = weather_patch.to(device, non_blocking=True)
             label_tensor = label_patch.type(torch.long).to(device)
 
-            print("Label shape:", label_tensor.shape)
-
             with torch.no_grad():
                 out = model(image_tensor)
-                print(out.shape)
 
             # Calculate loss
             batch_loss = criterion(out, label_tensor)
