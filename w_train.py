@@ -10,14 +10,17 @@ conda_lib = "/users/0/hinsv006/miniconda3/envs/carson/lib"
 os.environ["LD_LIBRARY_PATH"] = f"{conda_lib}:/lib64"
 sys.path.insert(0, conda_lib)
 
-import random
+import random  
+import time
 from re import split
 from pathlib import Path
 import torch
 import numpy as np
 from sklearn.metrics import confusion_matrix, f1_score, accuracy_score, classification_report
-from Models.baseline import STATT, WSTATT
-from data import get_data_loader
+from data import get_data_loader, w_get_data_loader
+
+# --- MODEL IMPORT ---
+from Models.statt import WSTATT
 
 torch.backends.cudnn.enabled = False
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -25,7 +28,7 @@ print("Active Device Status:", "cuda" if torch.cuda.is_available() else "cpu")
 
 if __name__ == "__main__":
     in_channels = 10
-    in_channels_weather = 7
+    in_channels_weather = 1
     out_channels = 33
 
     unknown_class = 100
@@ -37,6 +40,9 @@ if __name__ == "__main__":
     batch_size = 16
 
     NUM_SAMPLES = 32
+
+    bands = ["dayl", "prcp", "srad", "swe", "tmax", "tmin", "vp"]
+    band = 0
 
     # List of all possible grid names in the google drive folder, based on their naming conventions
     dataset = [
@@ -57,17 +63,7 @@ if __name__ == "__main__":
     val_dataset = split_dataset[:split_idx]
     test_dataset = split_dataset[split_idx:]
 
-    print("########## BUILDING MODELS ##########")
-    statt = STATT(
-        in_channels=in_channels,
-        out_channels=out_channels
-    )
-    if os.path.isfile("Statt.pt"):
-        statt.load_state_dict(torch.load("Statt.pt"),strict = False)
-        print("STATT Model Loaded")
-    else:
-        print(f"STATT Model Complete")
-
+    print("########## BUILDING MODEL ##########")
     wstatt = WSTATT(
         in_channels=in_channels,
         in_channels_w=in_channels_weather,
@@ -75,97 +71,80 @@ if __name__ == "__main__":
     )
     if os.path.isfile("Wstatt.pt"):
         wstatt.load_state_dict(torch.load("Wstatt.pt"),strict = False)
+        print("WSTATT Model Loaded")
     else:
         print(f"WSTATT Model Complete")
 
-    print("########## TRAINING MODELS ##########")
-    statt = statt.to(device)
+    print("########## TRAINING MODEL ##########")
+    start_time = time.time()
+
     wstatt = wstatt.to(device)
 
     criterion = torch.nn.CrossEntropyLoss(ignore_index=unknown_class)
 
-    statt_optim = torch.optim.Adam(statt.parameters(), lr=learning_rate)
-    wstatt_optim = torch.optim.Adam(wstatt.parameters(), lr=learning_rate)
+    optim = torch.optim.Adam(wstatt.parameters(), lr=learning_rate)
 
-    statt_train_loss = []
-    wstatt_train_loss = []
+    train_loss = []
 
-    statt.train()
     wstatt.train()
 
-    statt_epoch_loss = 0
-    wstatt_epoch_loss = 0
+    epoch_loss = 0
 
     sample_grids = random.sample(train_dataset, NUM_SAMPLES)
 
     for grid_num, grid in enumerate(sample_grids):
+        grid_time = time.time()
 
         print("\x1b[2K" + f"Getting data loader for grid {grid}...", end="\r", flush=True)
-        data_loader = get_data_loader(grid, batch_size)
+        data_loader = w_get_data_loader(grid, batch_size, band)
 
-        statt_grid_loss = 0
-        wstatt_grid_loss = 0
+        grid_loss = 0
 
         for batch, [image_patch, weather_patch, label_patch] in enumerate(data_loader):
             print("\x1b[2K" + f"Training on {grid}'s batch {batch + 1}", end="\r", flush=True)
-            statt_optim.zero_grad()
-            wstatt_optim.zero_grad()
+            optim.zero_grad()
 
             image_tensor = image_patch.to(device, non_blocking=True)
             weather_tensor = weather_patch.to(device, non_blocking=True)
             label_patch = label_patch.type(torch.long).to(device, non_blocking=True)
 
-            statt_out = statt(image_tensor)
-            wstatt_out = wstatt(image_tensor, weather_tensor)
+            out = wstatt(image_tensor, weather_tensor)
 
-            statt_batch_loss = criterion(statt_out, label_patch)
-            wstatt_batch_loss = criterion(wstatt_out, label_patch)
+            batch_loss = criterion(out, label_patch)
 
-            statt_batch_loss.backward()
-            wstatt_batch_loss.backward()
+            batch_loss.backward()
 
-            statt_optim.step()
-            wstatt_optim.step()
+            optim.step()
 
-            statt_grid_loss += statt_batch_loss.item()
-            wstatt_grid_loss += wstatt_batch_loss.item()
+            grid_loss += batch_loss.item()
 
-        statt_grid_loss = statt_grid_loss / (batch + 1) 
-        wstatt_grid_loss = wstatt_grid_loss / (batch + 1)
-        print("\x1b[2K" + f'Grid Num: {grid_num} Grid: {grid} STATT Loss: {statt_grid_loss:.4f} WSTATT: {wstatt_grid_loss:.4f}')
+        grid_loss = grid_loss / (batch + 1)
+        print("\x1b[2K" + f'Grid Num: {grid_num + 1}, Grid: {grid}, Loss: {grid_loss:.4f}, Time: {(time.time() - grid_time):.2f}')
 
-        statt_epoch_loss += statt_grid_loss
-        wstatt_epoch_loss += wstatt_grid_loss
+        epoch_loss += grid_loss
 
-    statt_epoch_loss = statt_epoch_loss / (grid_num + 1)
-    wstatt_epoch_loss = wstatt_epoch_loss / (grid_num + 1)
-    print(f'\tSTATT Test Loss: {statt_epoch_loss:.4f} WSTATT Test Loss: {wstatt_epoch_loss:.4f}')
+    epoch_loss = epoch_loss / (grid_num + 1)
+    print(f'\tBand: {bands[band]}, Test Loss: {epoch_loss:.4f}, Epoch Time: {(time.time() - start_time):.2f},')
 
-    statt_train_loss.append(statt_epoch_loss)
-    wstatt_train_loss.append(wstatt_epoch_loss)
+    train_loss.append(epoch_loss)
 
-    torch.save(statt.state_dict(), "Statt.pt")
     torch.save(wstatt.state_dict(), "Wstatt.pt")
 
+# Validation Loop; comment out when training (vice versa comment out the training loop while validating)
 '''
 print("########## TEST MODELS ##########")
-statt = STATT(
-    in_channels=in_channels,
-    out_channels=out_channels
-)
-
 wstatt = WSTATT(
     in_channels=in_channels,
     in_channels_w=in_channels_weather,
     out_channels=out_channels
 )
+print("WSTATT Model Built")
 
-statt = statt.to(device)
 wstatt = wstatt.to(device)
 
 print("LOAD MODEL")
-statt.load_state_dict(torch.load("Statt.pt"),strict = False)
 wstatt.load_state_dict(torch.load("Wstatt.pt"),strict = False)
+print("WSTATT Model Loaded")
 
 criterion = torch.nn.CrossEntropyLoss(ignore_index=unknown_class)
 
@@ -179,104 +158,85 @@ class_names = ['Corn','Cotton','Rice','Sunflower','Barley','Winter_Wheat','Saffl
                'Clover_and_wildflower','Shrubland','Grass','Woody_wetlands','Herbaceous_Wetlands','Water','Urban']
 
 # Initialize metrics storage
-statt_test_loss = []    # Track loss per test run
-wstatt_test_loss = []
+test_loss = []    # Track loss per test run
 label_list = []   # Collect all ground truth labels
-statt_pred_list = []    # Collect all model predictions
-wstatt_pred_list = []
+pred_list = []    # Collect all model predictions
 
 # Set model to evaluation mode (disables dropout/BatchNorm)
-statt.eval()
 wstatt.eval()
 
 # Test dataset - normally multiple grids
 sample_grids = random.sample(test_dataset, NUM_SAMPLES)
 
-statt_epoch_loss = 0  # Accumulate loss across grids
-wstatt_epoch_loss = 0
+epoch_loss = 0  # Accumulate loss across grids
 # Process each grid in test dataset
 for grid_num, grid in enumerate(sample_grids):
     print("\x1b[2K" + f"Getting data loader for grid {grid}...", end="\r", flush=True)
     data_loader = get_data_loader(grid, batch_size)
 
-    statt_grid_loss = 0  # Accumulate loss for this grid
-    wstatt_grid_loss = 0
+    grid_loss = 0  # Accumulate loss for this grid
     # Process all batches in grid
     for batch, [image_patch, weather_patch, label_patch] in enumerate(data_loader):
         print("\x1b[2K" + f"Testing on {grid}'s batch {batch + 1}", end="\r", flush=True)
+
         # Forward pass WITHOUT gradient calculation (saves memory)
         image_tensor = image_patch.to(device, non_blocking=True)
         weather_tensor = weather_patch.to(device, non_blocking=True)
 
         with torch.no_grad():
-            statt_patch_out = statt(image_tensor)
-            wstatt_patch_out = wstatt(image_tensor, weather_tensor)
+            patch_out = wstatt(image_tensor, weather_tensor)
 
         # Convert model outputs to probabilities using softmax
         # dim=1 applies softmax across classes (channel dimension)
-        statt_patch_prob_out = torch.nn.functional.softmax(statt_patch_out, dim=1)
-        wstatt_patch_prob_out = torch.nn.functional.softmax(wstatt_patch_out, dim=1)
+        patch_prob_out = torch.nn.functional.softmax(patch_out, dim=1)
 
         # Detach from computation graph and move to CPU
-        statt_patch_prob_out_numpy = statt_patch_prob_out.cpu().detach().numpy()
-        wstatt_patch_prob_out_numpy = wstatt_patch_prob_out.cpu().detach().numpy()
+        patch_prob_out_numpy = patch_prob_out.cpu().detach().numpy()
 
         # Get predicted class (index with highest probability)
         # Shape: [batch, height, width]
-        statt_pred_patch = np.argmax(statt_patch_prob_out_numpy, axis=1)
-        wstatt_pred_patch = np.argmax(wstatt_patch_prob_out_numpy, axis=1)
+        pred_patch = np.argmax(patch_prob_out_numpy, axis=1)
 
         # Prepare labels for loss calculation
         label_patch_device = label_patch.type(torch.long).to(device)
 
         # Calculate loss
-        statt_batch_loss = criterion(statt_patch_out, label_patch_device)
-        wstatt_batch_loss = criterion(wstatt_patch_out, label_patch_device)
+        batch_loss = criterion(patch_out, label_patch_device)
 
-        statt_grid_loss += statt_batch_loss.item()  # Accumulate batch loss
-        wstatt_grid_loss += wstatt_batch_loss.item()
+        grid_loss += batch_loss.item()  # Accumulate batch loss
 
         # Flatten predictions and labels to 1D arrays
-        statt_pred_patch_flat = np.reshape(statt_pred_patch, (-1))        # [batch*height*width]
-        wstatt_pred_patch_flat = np.reshape(wstatt_pred_patch, (-1))      # [batch*height*width]
+        pred_patch_flat = np.reshape(pred_patch, (-1))      # [batch*height*width]
         label_patch_flat = np.reshape(label_patch, (-1))      # [batch*height*width]
 
         # Filter out unknown_class pixels (ignore_index)
         valid_mask = label_patch_flat != unknown_class
-        statt_pred_grid_flat = statt_pred_patch_flat[valid_mask]
-        wstatt_pred_grid_flat = wstatt_pred_patch_flat[valid_mask]
+        pred_grid_flat = pred_patch_flat[valid_mask]
         label_grid_flat = label_patch_flat[valid_mask]
 
         # Collect valid predictions and labels for overall metrics
-        for l in range(statt_pred_grid_flat.shape[0]):
+        for l in range(pred_grid_flat.shape[0]):
             label_list.append(label_grid_flat[l])
-            statt_pred_list.append(statt_pred_grid_flat[l])
-            wstatt_pred_list.append(wstatt_pred_grid_flat[l])
+            pred_list.append(pred_grid_flat[l])
 
     # Calculate average loss for current grid
-    statt_grid_loss = statt_grid_loss / (batch + 1)
-    wstatt_grid_loss = wstatt_grid_loss / (batch + 1)
-    print("\x1b[2K" + f'Grid Num: {grid_num:02} Grid: {grid} STATT Loss: {statt_grid_loss:.4f} WSTATT Loss: {wstatt_grid_loss:.4f}')
-    statt_epoch_loss += statt_grid_loss
-    wstatt_epoch_loss += wstatt_grid_loss
+    grid_loss = grid_loss / (batch + 1)
+    print("\x1b[2K" + f'Grid Num: {grid_num:02} Grid: {grid} Loss: {grid_loss:.4f}')
+    epoch_loss += grid_loss
 
 # Convert collected results to numpy arrays
 label_array = np.array(label_list)  # All ground truth labels
-statt_pred_array = np.array(statt_pred_list)    # All model predictions
-wstatt_pred_array = np.array(wstatt_pred_list)
+pred_array = np.array(pred_list)    # All model predictions
 
 # Calculate overall test loss
-statt_epoch_loss = statt_epoch_loss / (grid_num + 1)
-wstatt_epoch_loss = wstatt_epoch_loss / (grid_num + 1)
+epoch_loss = epoch_loss / (grid_num + 1)
 
-print(f'\tSTATT Test Loss:{statt_epoch_loss:.4f} WSTATT Test Loss:{wstatt_epoch_loss:.4f}')
+print(f'\tTest Loss:{epoch_loss:.4f}')
 
-statt_test_loss.append(statt_epoch_loss)  # Store for later analysis
-wstatt_test_loss.append(wstatt_epoch_loss)
+test_loss.append(epoch_loss)  # Store for later analysis
 
 # print('Overall unknown:', np.sum(pred_array == 100), '  labels:', np.sum(label_array == 100))
 # print(classification_report(label_array, pred_array, target_names=class_names, digits=4,labels = labels_list))
-
 
 # Compute support (i.e., the number of occurrences per class in label_array)
 unique_labels, support = np.unique(label_array, return_counts=True)
@@ -288,9 +248,6 @@ valid_labels = unique_labels[support > threshold]
 filtered_class_names = [class_names[i] for i in range(len(class_names)) if labels_list[i] in valid_labels]
 
 # Compute classification report only for selected labels
-print("## STATT Classification Report ##")
-print(classification_report(label_array, statt_pred_array, target_names=filtered_class_names, digits=4, labels=valid_labels))
-
-print("## WSTATT Classification Report ##")
-print(classification_report(label_array, wstatt_pred_array, target_names=filtered_class_names, digits=4, labels=valid_labels))
+print("## Classification Report ##")
+print(classification_report(label_array, pred_array, target_names=filtered_class_names, digits=4, labels=valid_labels))
 '''
