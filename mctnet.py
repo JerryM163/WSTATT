@@ -1,7 +1,9 @@
+from os import times
 import time
 
 import torch
 import numpy as np
+from torch.nn.modules import BatchNorm2d, Conv2d, ReLU
 
 from data import DataLoader, get_data_loader
 
@@ -11,7 +13,7 @@ from data import DataLoader, get_data_loader
 
 # TODO: Build out the WSTATT version; figure out how the weather data is incorporated into the network
 
-class MCT_STATT(torch.nn.Module):
+class CT_NET(torch.nn.Module):
     '''
     Utilizes the joint capabilities of CNNs and Transformers to derive a full spatial
     context for crop mapping.
@@ -23,174 +25,242 @@ class MCT_STATT(torch.nn.Module):
         MLP: Multi-layer perceptron for final classification
 
     '''
-    def __init__(self, in_channels, out_channels):
+    def __init__(self, bands=10, classes=33):
         '''Initializes the model'''
-        super(MCT_STATT, self).__init__()
+        super(CT_NET, self).__init__()
 
-        # --- CNN Sub Modules ---
-        # CNN 1
-        self.conv1_1 = torch.nn.Conv2d(10, 64, 3, padding=1)
-        self.norm1_1 = torch.nn.BatchNorm2d(64)
-        self.conv1_2 = torch.nn.Conv2d(64, 64, 3, padding=1)
-        self.norm1_2 = torch.nn.BatchNorm2d(64)
+        # --- CTFusion Module 1 ---
 
-        # CNN 2
-        self.conv2_1 = torch.nn.Conv1d(128, 128, 3, padding=1)
-        self.norm2_1 = torch.nn.BatchNorm1d(128)
-        self.conv2_2 = torch.nn.Conv1d(128, 128, 3, padding=1)
-        self.norm2_2 = torch.nn.BatchNorm1d(128)
-
-        # CNN 3
-        self.conv3_1 = torch.nn.Conv1d(256, 256, 3, padding=1)
-        self.norm3_1 = torch.nn.BatchNorm1d(256)
-        self.conv3_2 = torch.nn.Conv1d(256, 256, 3, padding=1)
-        self.norm3_2 = torch.nn.BatchNorm1d(256)
-
-        # --- Transformer Sub Modules ---
-        # Initial Embedding layer
-        self.linear1 = torch.nn.Linear(10240, 64)
-        # Transformer 1
-        self.transformer1 = torch.nn.Transformer( 
-            d_model=64,
-            nhead=8,
-            dim_feedforward=256,
-            num_encoder_layers=2,
-            batch_first=True
-        )                                         
-        # Transformer 2
-        self.transformer2 = torch.nn.Transformer(
-            d_model=128,
-            nhead=8,
-            dim_feedforward=512,
-            num_encoder_layers=2,
-            batch_first=True
+        self.cnn1 = torch.nn.Sequential(
+            torch.nn.Conv2d(
+                bands,
+                64,
+                kernel_size=3,
+                padding=1,
+            ),
+            torch.nn.BatchNorm2d(64),
+            torch.nn.Conv2d(
+                64,
+                64,
+                kernel_size=3,
+                paddinh=1,
+            ),
+            torch.nn.BatchNorm2d(64),
+            torch.nn.ReLU(),
         )
-        # Transformer 3
-        self.transformer3 = torch.nn.Transformer(
-            d_model=256,
-            nhead=8,
-            dim_feedforward=1024,
-            num_encoder_layers=2,
-            batch_first=True
+        self.embed_layer1 = torch.nn.Linear(bands, 64)
+        self.trans1 = torch.nn.TransformerEncoder(
+            torch.nn.TransformerEncoderLayer(
+                d_model=64,
+                nhead=8,
+                dim_feedforward=256,
+                batch_first=True,
+            ),
+            num_layers=2,
         )
 
-        # --- Multi-layer Perceptron Classifier
-        self.mlp1 = torch.nn.Linear(512, 256)
-        self.mlp2 = torch.nn.Linear(256, out_channels)
+        # --- CTFusion Module 2 ---
+        self.cnn2 = torch.nn.Sequential(
+             torch.nn.Conv2d(
+                128,
+                128,
+                kernel_size=3,
+                padding=1,
+            ),
+            torch.nn.BatchNorm2d(128),
+            torch.nn.Conv2d(
+                128,
+                128,
+                kernel_size=3,
+                paddinh=1,
+            ),
+            torch.nn.BatchNorm2d(128),
+            torch.nn.ReLU(),
+        )
+        self.embed_layer2 = torch.nn.Linear(128, 128)
+        self.trans2 = torch.nn.TransformerEncoder(
+            torch.nn.TransformerEncoderLayer(
+                d_model=128,
+                nhead=8,
+                dim_feedforward=512,
+                batch_first=True,
+            ),
+            num_layers=2,
+        )
 
-        # --- Shared Operations
-        self.maxpool = torch.nn.MaxPool1d(2)
-        self.relu = torch.nn.ReLU()
+        # --- CTFusion Module 3 ---
+        self.cnn3 = torch.nn.Sequential(
+            torch.nn.Conv2d(
+                256,
+                256,
+                kernel_size=3,
+                padding=1
+            ),
+            torch.nn.BatchNorm2d(256),
+            torch.nn.ReLU(),
+
+            torch.nn.Conv2d(
+                256,
+                256,
+                kernel_size=3,
+                padding=1
+            ),
+            torch.nn.BatchNorm2d(256),
+            torch.nn.ReLU()
+        )
+        self.embed_layer3 = torch.nn.Linear(256, 256)
+        self.trans3 = torch.nn.TransformerEncoder(
+            torch.nn.TransformerEncoderLayer(
+                d_model=256,
+                nhead=8,
+                dim_feedforward=1024,
+                batch_first=True
+            ),
+            num_layers=2
+        )
+
+        # --- Pooling ---
+        self.pool = torch.nn.MaxPool2d(2)
+
+        # --- Decoder ---
+        self.decoder1 = torch.nn.Conv2d(
+            256,
+            128,
+            kernel_size=3,
+            padding=1,
+        )
+        self.decoder2 = torch.nn.Conv2d(
+            128,
+            64,
+            kernel_size=3,
+            padding=1,
+        )
+
+        # --- Classifer ---
+        self.classifier = torch.nn.Conv2d(
+            64,
+            classes,
+            kernel_size=1,
+        )
 
     def concat(self, cnn, trans):
         ''' Combine CNN and Transformer features '''
         return torch.cat([cnn, trans], dim=2)
+    
+    def trans_forward(self, x, transformer, embedding):
+        '''
+            Input vector of shape:
+                (batch, channels, height, width, timestamps)
+            Outputs vector of shape:
+                (batch, channels, height, width)
+        '''
+
+        batches, timestamps, channels, height, width = x.shape
+
+        # Changes shape to: (batch, height, width, timestamps, channels)
+        x = x.permute(0, 3, 4, 1, 2)
+        
+        # Can now operate per-pixel
+        x = x.reshape(batches*height*width, timestamps, channels)
+
+        x = embedding(x)
+
+        x = transformer(x)
+
+        # Collapses transformer output along temporal dimension
+        x = x.mean(dim=1)
+
+        x = x.reshape(batches, height, width, -1)
+
+        # Changes shape to: (batch, channels, height, width)
+        x = x.permute(0, 3, 1, 2)
+
+        return x
 
     def forward(self, x):
         ''' Processes sentinel-2 data'''
-        # Initial shape of 'x' is: (16, 24, 10, 32, 32)
         batches, timestamps, channels, height, width = x.shape
 
-        # Reshape 'x' for use in the 1st CTFusion module: (384, 10, 32, 32)
+        # --- Module 1 ---
+        # Reshape input for 1st CNN: (384,10,32,32)
         cnn_x = x.reshape(batches*timestamps, channels, height, width)
+        
+        # Pass through 1st CNN sub module: (384,64,32,32)
+        cnn_out = self.cnn1(cnn_x)
 
-        # The transformer should take in a sequence like (batch, timestamps, features)
-        # Reshape 'x' by combining channels and features: (16, 24, 10240)
-        trans_out = x.reshape(batches, timestamps, channels*height*width)
+        # Reshape CNN output to original with updated channels: (16,24,64,32,32)
+        cnn_out = cnn_out.reshape(batch, timestamps, 64, height, width)
 
-        # Compress the features: (16, 24, 64)
-        trans_out = self.linear1(trans_out)
+        # Collapse CNN output along temporal dimension to match transformer output: (16,64,32,32)
+        cnn_out = cnn_out.mean(dim=1)
 
-        # --- CNN Sub-Module 1 ---
-        cnn_x = self.conv1_1(cnn_x) # Conv2D
-        cnn_x = self.norm1_1(cnn_x) # BatchNorm2D
-        cnn_x = self.conv1_2(cnn_x) # Conv2D
-        cnn_x = self.norm1_2(cnn_x) # BatchNorm2D
-        cnn_out = self.relu(cnn_x)  # ReLU
-        # Outputs Shape: (384, 64, 32, 32)
+        # Pass through 1st Transformer sub module: (16,64,32,32)
+        trans_out = self.trans_forward(
+            x,
+            self.trans1,
+            self.embed_layer1,
+        )
 
-        # --- Transformer Sub-Module 1 ---
-        trans_out = self.transformer1(trans_out, trans_out)
-        # Outputs Shape: (16, 24, 64)
+        # Combines CNN and Transformer outputs: (16,128,32,32)
+        x = torch.cat([cnn_out, trans_out], dim=1)
 
-        # CNN and Transformer outputs don't match; revert CNN's outputs to be: (16, 24, 64, 32, 32)
-        cnn_out = cnn_out.reshape(batches, timestamps, 64, height, width)
+        # Pool features: (16,128,16,16)
+        x = self.pool(x)
 
-        # Finally, reshape the CNN outputs to be: (16, 24, 64) just like the Transformer
-        cnn_out = cnn_out.mean(dim=(3,4))
+        # --- Module 2 ---
+        # Pass through 2nd CNN sub module: (16,128,16,16)
+        cnn_out = self.cnn2(x)
 
-        # Combine the features from both the CNN and Transformer: (16, 24, 128)
-        concatenated = self.concat(cnn_out, trans_out)
+        # Permute input to send to Transformer: (16,16,16,128)
+        trans_input = x.permute(0, 2, 3, 1)
 
-        # Rearrange the vector: (16, 128, 24)
-        concatenated = concatenated.transpose(1, 2)
+        batches, height, width, channels = trans_input.shape
 
-        # Temporal pooling from 24 to 12: (16, 128, 12)
-        pooled = self.maxpool(concatenated)
+        # Rearrange input: (16,256,128)
+        trans_input = trans_input.reshape(batches, height*width, channels)
 
-        # Prepare shape of trans_out: (16, 12, 128)
-        trans_out = pooled.transpose(1, 2)
+        # Create an embedding to pass to the transformer: (16,256,128)
+        trans_input = self.embed_layer2(trans_input)
 
-        # --- CNN Sub-Module 2 ---
-        cnn_x = self.conv2_1(pooled) # Conv1D
-        cnn_x = self.norm2_1(cnn_x)  # BatchNorm1D
-        cnn_x = self.conv2_2(cnn_x)  # Conv1D
-        cnn_x = self.norm2_2(cnn_x)  # BatchNorm1D
-        cnn_out = self.relu(cnn_x)   # ReLU
-        # Outputs (16, 128, 12)
+        # Pass through the 2nd transformer: (16,256,128)
+        trans_out = self.transformer2(trans_input)
 
-        # --- Tranformer Sub-Module 2 ---
-        trans_out = self.transformer2(trans_out, trans_out)
-        # Outputs (16, 12, 128)
+        # Reshapes transformer output: (16,16,16,128)
+        trans_out = trans_out.reshape(batches, height, width, 128)
 
-        # Rearrange the positions to match the Transformer output: (16, 12, 128)
-        cnn_out = cnn_out.transpose(1, 2)
+        # Permutes shape to be equal to the CNN's output: (16,128,16,16)
+        trans_out = trans_out.permute(0,3,1,2)
 
-        # Combine the features from the CNN and Transformer sub modules: (16, 12, 256)
-        concatenated = self.concat(cnn_out, trans_out)
+        # Combines CNN and Transformer outputs: (16,256,16,16)
+        x = torch.concat([cnn_out, trans_out], dim=1)
 
-        # Rearrage the vector to once again prepare for pooling: (16, 256, 12)
-        concatenated = concatenated.transpose(1, 2)
+        # Pool features: (16,256,8,8)
+        x = self.pool(x)
 
-        # Temporal pooling again: (16, 256, 6)
-        pooled = self.maxpool(concatenated)
+        # --- Module 3 ---
+        # Pass to the 3rd CNN sub module: (16,256,8,8)
+        cnn_out = self.cnn3(x)
 
-        # Prepare shape of trans_out: (16, 6, 256)
-        trans_out = pooled.transpose(1, 2)
+        # Permute input to send to Transformer: (16,16,16,128)
+        trans_input = x.permute(0, 2, 3, 1)
 
-        # --- CNN Sub Module 3 --- 
-        cnn_x = self.conv3_1(pooled) # Conv1D
-        cnn_x = self.norm3_1(cnn_x)  # BatchNorm1D
-        cnn_x = self.conv3_2(cnn_x)  # Conv1D
-        cnn_x = self.norm3_2(cnn_x)  # BatchNorm1D
-        cnn_out = self.relu(cnn_x)   # ReLU
-        # Outputs: (16, 256, 6)
+        batches, height, width, channels = trans_input.shape
 
-        # --- Transformer Sub Module 3 ---
-        trans_out = self.transformer3(trans_out, trans_out)
-        # Outputs: (16, 6, 256)
+        # Rearrange input: (16,256,128)
+        trans_input = trans_input.reshape(batches, height*width, channels)
 
-        # Rearrange the positions to match the Transformer output: (16, 6, 256)
-        cnn_out = cnn_out.transpose(1, 2)
+        # Create an embedding to pass to the transformer: (16,256,128)
+        trans_input = self.embed_layer2(trans_input)
 
-        # Combine the features from the CNN and Transformer sub modules: (16, 6, 512)
-        concatenated = self.concat(cnn_out, trans_out)
+        # Pass through the 2nd transformer: (16,256,128)
+        trans_out = self.transformer2(trans_input)
 
-        # Rearrage the vector to once again prepare for pooling: (16, 512, 6)
-        concatenated = concatenated.transpose(1, 2)
+        # Reshapes transformer output: (16,16,16,128)
+        trans_out = trans_out.reshape(batches, height, width, 128)
 
-        # Temporal pooling again: (16, 512, 3)
-        pooled = self.maxpool(concatenated)
-
-        # Average over time dimension: (16, 512)
-        pooled = pooled.mean(dim=2)
-
-        # --- Multi-Layer Perceptron Classifier ---
-        mlp1 = self.mlp1(pooled) # Outputs (16, 256)
-        relu = self.relu(mlp1)  
-        result = self.mlp2(relu) # Outputs (16, 33)
-
-        return result
+        # Permutes shape to be equal to the CNN's output: (16,128,16,16)
+        trans_out = trans_out.permute(0,3,1,2)
+       
 
 class MCT_WSTATT(torch.nn.Module):
     def __init__(self, in_channels, in_channels_w, out_channels):

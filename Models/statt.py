@@ -1,6 +1,6 @@
 import torch
 
-class CNN_STATT(torch.nn.Module):
+class STATT(torch.nn.Module):
     """Spatio-Temporal Attention Network (STATT) for sequence-based image segmentation.
 
     Architecture:
@@ -16,7 +16,7 @@ class CNN_STATT(torch.nn.Module):
             in_channels: Number of input channels per timestep
             out_channels: Number of output classes
         """
-        super(CNN_STATT, self).__init__()
+        super(STATT, self).__init__()
 
         # --- Encoder Path (Downsampling) ---
         # Block 1: Maintains spatial resolution
@@ -203,9 +203,9 @@ class CNN_STATT(torch.nn.Module):
     def __str__(self):
         return "Baseline STATT Model"
 
-class CNN_WSTATT(torch.nn.Module):
+class WSTATT(torch.nn.Module):
     def __init__(self, in_channels, in_channels_w, out_channels):
-        super(CNN_WSTATT, self).__init__()  # Initialize parent class (torch.nn.Module)
+        super(WSTATT, self).__init__()  # Initialize parent class (torch.nn.Module)
 
         # Feature dimensions for spatial and weather data processing
         self.s_fe = 64  # Spatial feature base dimension
