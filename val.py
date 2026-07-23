@@ -4,42 +4,36 @@ import random
 import numpy as np
 from sklearn.metrics import confusion_matrix, f1_score, accuracy_score, classification_report
 
-from Models.statt import WSTATT
-from data import w_get_data_loader
+from Models.statt import STATT
+from data import get_data_loader
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 print("Active Device Status:", "cuda" if torch.cuda.is_available() else "cpu")
 
 if __name__ == "__main__":
     in_channels = 10
-    in_channels_weather = 1
     out_channels = 33
 
     unknown_class = 100
     learning_rate = 0.0001
-    num_epochs = 10
 
     batch_size = 16
-
-    weather_bands = ["dayl", "prcp", "srad", "swe", "tmax", "tmin", "vp"]
-    bands = [0, 1, 2, 3, 4, 5, 6]
 
     timestamps = 18
 
     val_dataset = np.load(r"../WSTATT_DATA/DISTRIBUTION/T11SKA/validation_set_T11SKA_DISTRI1.npy").tolist()
 
     print("########## TEST MODELS ##########")
-    wstatt = WSTATT(
+    model = STATT(
         in_channels=in_channels,
-        in_channels_w=in_channels_weather,
         out_channels=out_channels
     )
     print("WSTATT Model Built")
 
-    wstatt = wstatt.to(device)
+    model = model.to(device)
 
     print("LOAD MODEL")
-    wstatt.load_state_dict(torch.load("Wstatt.pt"),strict = False)
+    model.load_state_dict(torch.load("Wstatt.pt"),strict = False)
     print("WSTATT Model Loaded")
 
     criterion = torch.nn.CrossEntropyLoss(ignore_index=unknown_class)
@@ -59,7 +53,7 @@ if __name__ == "__main__":
     pred_list = []    # Collect all model predictions
 
     # Set model to evaluation mode (disables dropout/BatchNorm)
-    wstatt.eval()
+    model.eval()
 
     # Test dataset - normally multiple grids
     sample_grids = random.sample(val_dataset, len(val_dataset))
@@ -68,7 +62,7 @@ if __name__ == "__main__":
     # Process each grid in test dataset
     for grid_num, grid in enumerate(sample_grids):
         print("\x1b[2K" + f"Getting data loader for grid {grid}...", end="\r", flush=True)
-        data_loader = w_get_data_loader(grid, batch_size)
+        data_loader = get_data_loader(grid, batch_size)
 
         grid_loss = 0  # Accumulate loss for this grid
         # Process all batches in grid
@@ -80,7 +74,7 @@ if __name__ == "__main__":
             weather_tensor = weather_patch.to(device, non_blocking=True)
 
             with torch.no_grad():
-                patch_out = wstatt(image_tensor, weather_tensor)
+                patch_out = model(image_tensor, weather_tensor)
 
             # Convert model outputs to probabilities using softmax
             # dim=1 applies softmax across classes (channel dimension)
