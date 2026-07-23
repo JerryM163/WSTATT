@@ -79,7 +79,7 @@ if __name__ == "__main__":
     # Process each grid in test dataset
     for grid_num, grid in enumerate(sample_grids):
         print("\x1b[2K" + f"Getting data loader for grid {grid}...", end="\r", flush=True)
-        data_loader = w_get_data_loader(grid, batch_size)
+        data_loader = w_get_data_loader(grid, batch_size, bands, timestamps)
 
         grid_loss = 0  # Accumulate loss for this grid
         # Process all batches in grid
