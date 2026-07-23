@@ -65,15 +65,15 @@ if __name__ == "__main__":
 
     print("########## BUILDING MODELS ##########")
     # --- STATT Baseline Models ---
-    #statt = CNN_STATT(
-    #    in_channels=in_channels,
-    #    out_channels=out_channels
-    #)
-    #if os.path.isfile("Statt.pt"):
-    #    statt.load_state_dict(torch.load("Statt.pt"),strict = False)
-    #    print("STATT Model Loaded")
-    #else:
-    #    print(f"STATT Model Complete")
+    model = STATT(
+        in_channels=in_channels,
+        out_channels=out_channels
+    )
+    if os.path.isfile("Statt.pt"):
+        model.load_state_dict(torch.load("Statt.pt"),strict = False)
+        print("STATT Model Loaded")
+    else:
+        print(f"STATT Model Complete")
     #wstatt = CNN_WSTATT(
     #    in_channels=in_channels,
     #    in_channels_w=in_channels_weather,
@@ -86,15 +86,15 @@ if __name__ == "__main__":
     #    print(f"WSTATT Model Complete")
 
     # --- CT Net Models ----
-    model = CT_NET(
-        bands=bands,
-        classes=classes,
-    )
-    if os.path.isfile("CTNet.pt"):
-        model.load_state_dict(torch.load("CTNet.pt"),strict = False)
-        print("CT Net Model Loaded")
-    else:
-        print(f"CT Net Model Complete")
+    #model = CT_NET(
+    #    bands=bands,
+    #    classes=classes,
+    #)
+    #if os.path.isfile("CTNet.pt"):
+    #    model.load_state_dict(torch.load("CTNet.pt"),strict = False)
+    #    print("CT Net Model Loaded")
+    #else:
+    #    print(f"CT Net Model Complete")
 
     print("########## TRAINING MODELS ##########")
     start_time = time.time()
@@ -149,10 +149,11 @@ if __name__ == "__main__":
 
     train_loss.append(epoch_loss)
 
-    #torch.save(model.state_dict(), "Statt.pt")
+    torch.save(model.state_dict(), "Statt.pt")
     #torch.save(model.state_dict(), "Wstatt.pt")
-    torch.save(model.state_dict(), "CTNet.pt")
+    #torch.save(model.state_dict(), "CTNet.pt")
 
+    '''
     print("########## TEST MODELS ##########")
     model = CT_NET(
         bands=bands,
@@ -269,3 +270,4 @@ if __name__ == "__main__":
     # Compute classification report only for selected labels
     print("## Classification Report ##")
     print(classification_report(label_array, pred_array, target_names=filtered_class_names, digits=4, labels=valid_labels))
+    '''

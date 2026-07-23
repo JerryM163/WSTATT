@@ -26,7 +26,7 @@ if __name__ == "__main__":
     weather_bands = ["dayl", "prcp", "srad", "swe", "tmax", "tmin", "vp"]
     bands = [0, 1, 2, 3, 4, 5, 6]
 
-    timestamps = 24
+    timestamps = 18
 
     print("########## TEST MODELS ##########")
     wstatt = WSTATT(
