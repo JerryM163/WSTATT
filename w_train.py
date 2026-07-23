@@ -19,7 +19,7 @@ import numpy as np
 from sklearn.metrics import confusion_matrix, f1_score, accuracy_score, classification_report
 from data import get_data_loader, w_get_data_loader
 
-# --- MODEL IMPORT ---
+# Import WSTATT model
 from Models.statt import WSTATT
 
 torch.backends.cudnn.enabled = False
@@ -28,7 +28,6 @@ print("Active Device Status:", "cuda" if torch.cuda.is_available() else "cpu")
 
 if __name__ == "__main__":
     in_channels = 10
-    in_channels_weather = 1
     out_channels = 33
 
     unknown_class = 100
@@ -41,34 +40,16 @@ if __name__ == "__main__":
 
     NUM_SAMPLES = 32
 
-    bands = ["dayl", "prcp", "srad", "swe", "tmax", "tmin", "vp"]
-    band = 0
+    weather_bands = ["dayl", "prcp", "srad", "swe", "tmax", "tmin", "vp"]
+    bands = [0, 1, 2, 3, 4, 5, 6]
+    in_channels_weather = len(bands)
 
+    timestamps = 12
 
-    #Randomized training data
-    # List of all possible grid names in the google drive folder, based on their naming conventions
-    # dataset = [
-    #     f"T11SKA_{year}_{first_digit}_{second_digit}"
-    #     for year in (2018, 2019, 2020)
-    #     for first_digit in range(10)
-    #     for second_digit in range(10)
-    # ]
-
-    # Load the provided train datas.
-    train_dataset = np.load(r"../WSTATT_DATA/DISTRIBUTION/T11SKA/train_set_T11SKA_DISTRI1.npy")
-    val_dataset = np.load(r"../WSTATT_DATA/DISTRIBUTION/T11SKA/validation_set_T11SKA_DISTRI1.npy")
-    test_dataset = np.load(r"../WSTATT_DATA/DISTRIBUTION/T11SKA/test_set_T11SKA_DISTRI1.npy")
-
-    # shuffled = random.sample(dataset, len(dataset))
-    # split_idx = int(len(shuffled) * 0.6)
-    
-    # train_dataset = shuffled[:split_idx]
-
-    # split_dataset = shuffled[split_idx:]
-    # split_idx = int(len(split_dataset) * 0.5)
-
-    # val_dataset = split_dataset[:split_idx]
-    # test_dataset = split_dataset[split_idx:]
+    # Load the provided datasets.
+    train_dataset = np.load(r"../WSTATT_DATA/DISTRIBUTION/T11SKA/train_set_T11SKA_DISTRI1.npy").tolist()
+    val_dataset = np.load(r"../WSTATT_DATA/DISTRIBUTION/T11SKA/validation_set_T11SKA_DISTRI1.npy").tolist()
+    test_dataset = np.load(r"../WSTATT_DATA/DISTRIBUTION/T11SKA/test_set_T11SKA_DISTRI1.npy").tolist()
 
     print("########## BUILDING MODEL ##########")
     wstatt = WSTATT(
@@ -103,7 +84,7 @@ if __name__ == "__main__":
         grid_time = time.time()
 
         print("\x1b[2K" + f"Getting data loader for grid {grid}...", end="\r", flush=True)
-        data_loader = w_get_data_loader(grid, batch_size, band)
+        data_loader = w_get_data_loader(grid, batch_size, bands, timestamps)
 
         grid_loss = 0
 
@@ -131,130 +112,8 @@ if __name__ == "__main__":
         epoch_loss += grid_loss
 
     epoch_loss = epoch_loss / (grid_num + 1)
-    print(f'\tBand: {bands[band]}, Test Loss: {epoch_loss:.4f}, Epoch Time: {(time.time() - start_time):.2f},')
+    print(f'\tBand(s): {bands}, Test Loss: {epoch_loss:.4f}, Epoch Time: {(time.time() - start_time):.2f},')
 
     train_loss.append(epoch_loss)
 
     torch.save(wstatt.state_dict(), "Wstatt.pt")
-
-# Validation Loop; comment out when training (vice versa comment out the training loop while validating)
-'''
-print("########## TEST MODELS ##########")
-wstatt = WSTATT(
-    in_channels=in_channels,
-    in_channels_w=in_channels_weather,
-    out_channels=out_channels
-)
-print("WSTATT Model Built")
-
-wstatt = wstatt.to(device)
-
-print("LOAD MODEL")
-wstatt.load_state_dict(torch.load("Wstatt.pt"),strict = False)
-print("WSTATT Model Loaded")
-
-criterion = torch.nn.CrossEntropyLoss(ignore_index=unknown_class)
-
-print("#######################################################################")
-
-threshold = 50000
-labels_list = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32]
-class_names = ['Corn','Cotton','Rice','Sunflower','Barley','Winter_Wheat','Safflower','Dry Beans','Onions','Tomatoes',
-               'Cherries','Grapes','Citrus','Almonds','Walnut','Pistachio','Garlic','Olives','Pomegranates','Alfalfa',
-               'Hay','Barren_land','Fallow_and_Idle','Deciduous_Forests','Evergreen_forest','Mixed_Forests',
-               'Clover_and_wildflower','Shrubland','Grass','Woody_wetlands','Herbaceous_Wetlands','Water','Urban']
-
-# Initialize metrics storage
-test_loss = []    # Track loss per test run
-label_list = []   # Collect all ground truth labels
-pred_list = []    # Collect all model predictions
-
-# Set model to evaluation mode (disables dropout/BatchNorm)
-wstatt.eval()
-
-# Test dataset - normally multiple grids
-sample_grids = random.sample(test_dataset, NUM_SAMPLES)
-
-epoch_loss = 0  # Accumulate loss across grids
-# Process each grid in test dataset
-for grid_num, grid in enumerate(sample_grids):
-    print("\x1b[2K" + f"Getting data loader for grid {grid}...", end="\r", flush=True)
-    data_loader = get_data_loader(grid, batch_size)
-
-    grid_loss = 0  # Accumulate loss for this grid
-    # Process all batches in grid
-    for batch, [image_patch, weather_patch, label_patch] in enumerate(data_loader):
-        print("\x1b[2K" + f"Testing on {grid}'s batch {batch + 1}", end="\r", flush=True)
-
-        # Forward pass WITHOUT gradient calculation (saves memory)
-        image_tensor = image_patch.to(device, non_blocking=True)
-        weather_tensor = weather_patch.to(device, non_blocking=True)
-
-        with torch.no_grad():
-            patch_out = wstatt(image_tensor, weather_tensor)
-
-        # Convert model outputs to probabilities using softmax
-        # dim=1 applies softmax across classes (channel dimension)
-        patch_prob_out = torch.nn.functional.softmax(patch_out, dim=1)
-
-        # Detach from computation graph and move to CPU
-        patch_prob_out_numpy = patch_prob_out.cpu().detach().numpy()
-
-        # Get predicted class (index with highest probability)
-        # Shape: [batch, height, width]
-        pred_patch = np.argmax(patch_prob_out_numpy, axis=1)
-
-        # Prepare labels for loss calculation
-        label_patch_device = label_patch.type(torch.long).to(device)
-
-        # Calculate loss
-        batch_loss = criterion(patch_out, label_patch_device)
-
-        grid_loss += batch_loss.item()  # Accumulate batch loss
-
-        # Flatten predictions and labels to 1D arrays
-        pred_patch_flat = np.reshape(pred_patch, (-1))      # [batch*height*width]
-        label_patch_flat = np.reshape(label_patch, (-1))      # [batch*height*width]
-
-        # Filter out unknown_class pixels (ignore_index)
-        valid_mask = label_patch_flat != unknown_class
-        pred_grid_flat = pred_patch_flat[valid_mask]
-        label_grid_flat = label_patch_flat[valid_mask]
-
-        # Collect valid predictions and labels for overall metrics
-        for l in range(pred_grid_flat.shape[0]):
-            label_list.append(label_grid_flat[l])
-            pred_list.append(pred_grid_flat[l])
-
-    # Calculate average loss for current grid
-    grid_loss = grid_loss / (batch + 1)
-    print("\x1b[2K" + f'Grid Num: {grid_num:02} Grid: {grid} Loss: {grid_loss:.4f}')
-    epoch_loss += grid_loss
-
-# Convert collected results to numpy arrays
-label_array = np.array(label_list)  # All ground truth labels
-pred_array = np.array(pred_list)    # All model predictions
-
-# Calculate overall test loss
-epoch_loss = epoch_loss / (grid_num + 1)
-
-print(f'\tTest Loss:{epoch_loss:.4f}')
-
-test_loss.append(epoch_loss)  # Store for later analysis
-
-# print('Overall unknown:', np.sum(pred_array == 100), '  labels:', np.sum(label_array == 100))
-# print(classification_report(label_array, pred_array, target_names=class_names, digits=4,labels = labels_list))
-
-# Compute support (i.e., the number of occurrences per class in label_array)
-unique_labels, support = np.unique(label_array, return_counts=True)
-
-# Filter labels with support above 50,000
-valid_labels = unique_labels[support > threshold]
-
-# Create a filtered class name list
-filtered_class_names = [class_names[i] for i in range(len(class_names)) if labels_list[i] in valid_labels]
-
-# Compute classification report only for selected labels
-print("## Classification Report ##")
-print(classification_report(label_array, pred_array, target_names=filtered_class_names, digits=4, labels=valid_labels))
-'''
