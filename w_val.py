@@ -4,8 +4,8 @@ import random
 import numpy as np
 from sklearn.metrics import confusion_matrix, f1_score, accuracy_score, classification_report
 
-from ..Models.statt import WSTATT
-from ..data import w_get_data_loader
+from Models.statt import WSTATT
+from data import w_get_data_loader
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 print("Active Device Status:", "cuda" if torch.cuda.is_available() else "cpu")
