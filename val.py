@@ -17,6 +17,7 @@ from sklearn.metrics import confusion_matrix, f1_score, accuracy_score, classifi
 from Models.statt import STATT
 from data import get_data_loader
 
+torch.backends.cudnn.enabled = False
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 print("Active Device Status:", "cuda" if torch.cuda.is_available() else "cpu")
 

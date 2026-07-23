@@ -17,6 +17,7 @@ from sklearn.metrics import confusion_matrix, f1_score, accuracy_score, classifi
 from Models.statt import WSTATT
 from data import w_get_data_loader
 
+torch.backends.cudnn.enabled = False
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 print("Active Device Status:", "cuda" if torch.cuda.is_available() else "cpu")
 
@@ -39,17 +40,17 @@ if __name__ == "__main__":
     val_dataset = np.load(r"../WSTATT_DATA/DISTRIBUTION/T11SKA/validation_set_T11SKA_DISTRI1.npy").tolist()
 
     print("########## TEST MODELS ##########")
-    wstatt = WSTATT(
+    model = WSTATT(
         in_channels=in_channels,
         in_channels_w=in_channels_weather,
         out_channels=out_channels
     )
     print("WSTATT Model Built")
 
-    wstatt = wstatt.to(device)
+    model = model.to(device)
 
     print("LOAD MODEL")
-    wstatt.load_state_dict(torch.load("Wstatt.pt"),strict = False)
+    model.load_state_dict(torch.load("Wstatt.pt"),strict = False)
     print("WSTATT Model Loaded")
 
     criterion = torch.nn.CrossEntropyLoss(ignore_index=unknown_class)
@@ -69,7 +70,7 @@ if __name__ == "__main__":
     pred_list = []    # Collect all model predictions
 
     # Set model to evaluation mode (disables dropout/BatchNorm)
-    wstatt.eval()
+    model.eval()
 
     # Test dataset - normally multiple grids
     sample_grids = random.sample(val_dataset, len(val_dataset))
@@ -90,7 +91,7 @@ if __name__ == "__main__":
             weather_tensor = weather_patch.to(device, non_blocking=True)
 
             with torch.no_grad():
-                patch_out = wstatt(image_tensor, weather_tensor)
+                patch_out = model(image_tensor, weather_tensor)
 
             # Convert model outputs to probabilities using softmax
             # dim=1 applies softmax across classes (channel dimension)
