@@ -23,7 +23,7 @@ print("Active Device Status:", "cuda" if torch.cuda.is_available() else "cpu")
 
 if __name__ == "__main__":
     in_channels = 10
-    in_channels_weather = 1
+    in_channels_weather = 7
     out_channels = 33
 
     unknown_class = 100
