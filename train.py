@@ -44,24 +44,12 @@ if __name__ == "__main__":
 
     NUM_SAMPLES = 32
 
-    # List of all possible grid names in the google drive folder, based on their naming conventions
-    dataset = [
-        f"T11SKA_{year}_{first_digit}_{second_digit}"
-        for year in (2018, 2019, 2020)
-        for first_digit in range(10)
-        for second_digit in range(10)
-    ]
+    timestamps = 24
 
-    shuffled = random.sample(dataset, len(dataset))
-    split_idx = int(len(shuffled) * 0.6)
-    
-    train_dataset = shuffled[:split_idx]
-
-    split_dataset = shuffled[split_idx:]
-    split_idx = int(len(split_dataset) * 0.5)
-
-    val_dataset = split_dataset[:split_idx]
-    test_dataset = split_dataset[split_idx:]
+    # Load the provided datasets.
+    train_dataset = np.load(r"../WSTATT_DATA/DISTRIBUTION/T11SKA/train_set_T11SKA_DISTRI1.npy").tolist()
+    val_dataset = np.load(r"../WSTATT_DATA/DISTRIBUTION/T11SKA/validation_set_T11SKA_DISTRI1.npy").tolist()
+    test_dataset = np.load(r"../WSTATT_DATA/DISTRIBUTION/T11SKA/test_set_T11SKA_DISTRI1.npy").tolist()
 
     print("########## BUILDING MODELS ##########")
     # --- STATT Baseline Models ---
@@ -117,7 +105,7 @@ if __name__ == "__main__":
         grid_time = time.time()
 
         print("\x1b[2K" + f"Getting data loader for grid {grid}...", end="\r", flush=True)
-        data_loader = get_data_loader(grid, batch_size)
+        data_loader = get_data_loader(grid, batch_size, timestamps)
 
         grid_loss = 0
 

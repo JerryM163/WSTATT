@@ -62,7 +62,7 @@ class SEGMENTATION(Dataset):
             self.label_patches[idx]
         )
 
-def create_patches(grid):
+def create_patches(grid, timestamps):
     """Create image patches, weather data, and label patches for a given grid location.
 
     Args:
@@ -74,6 +74,16 @@ def create_patches(grid):
 
     # Load satellite image data (4D array: [timesteps, channels, height, width])
     image = np.load(os.path.join(sat_data_dir, grid + "_image.npy"))
+
+    timesteps = []
+    step = 24 // timestamps
+
+    # Populates timesteps with 'timestamps' number of evenly-spaced indexes 
+    for idx in range(0,24,step):
+        timesteps.append(idx)
+
+    # Reassigns image to only the selected timesteps based on 'timestamps' passed on
+    image = image[timesteps,:,:,:]
 
     # Load label data (2D array: [height, width] - ground truth for each pixel)
     label = np.load(os.path.join(combined_label_data_dir, grid + "_combined_label.npy"))
@@ -141,7 +151,7 @@ def create_patches(grid):
 
     return image_patches, weather_patches, label_patches
 
-def get_data_loader(grid, batch_size):
+def get_data_loader(grid, batch_size, timestamps):
     '''
     Args:
         grid - A single WSTATT data sample (eg. T11SKA_2018_0_0) as a string
@@ -152,7 +162,7 @@ def get_data_loader(grid, batch_size):
     if grid in GRID_CACHE:
         image_patches, weather_patches, label_patches = GRID_CACHE[grid]
     else:
-        image_patches, weather_patches, label_patches = create_patches(grid)
+        image_patches, weather_patches, label_patches = create_patches(grid, timestamps)
         GRID_CACHE[grid] = (image_patches, weather_patches, label_patches)
 
     data = SEGMENTATION(image_patches, weather_patches, label_patches)
