@@ -262,7 +262,7 @@ def w_get_data_loader(grid, batch_size, band):
     if grid in GRID_CACHE:
         image_patches, weather_patches, label_patches = GRID_CACHE[grid]
     else:
-        image_patches, weather_patches, label_patches = w_create_patches(grid, band)
+        image_patches, weather_patches, label_patches = w_create_patches(grid)
         GRID_CACHE[grid] = (image_patches, weather_patches, label_patches)
 
     data = SEGMENTATION(image_patches, weather_patches, label_patches)
