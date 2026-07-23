@@ -17,7 +17,7 @@ from pathlib import Path
 import torch
 import numpy as np
 from sklearn.metrics import confusion_matrix, f1_score, accuracy_score, classification_report
-from data import get_data_loader, w_get_data_loader
+from ..data import get_data_loader, w_get_data_loader
 
 # Import WSTATT model
 from Models.statt import WSTATT
