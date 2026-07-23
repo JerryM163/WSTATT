@@ -251,7 +251,7 @@ def w_create_patches(grid):
 
     return image_patches, weather_patches, label_patches
 
-def w_get_data_loader(grid, batch_size, band):
+def w_get_data_loader(grid, batch_size):
     '''
     Args:
         grid - A single WSTATT data sample (eg. T11SKA_2018_0_0) as a string
