@@ -44,7 +44,7 @@ if __name__ == "__main__":
 
     NUM_SAMPLES = 32
 
-    timestamps = 18
+    timestamps = 12
 
     # Load the provided datasets.
     train_dataset = np.load(r"../WSTATT_DATA/DISTRIBUTION/T11SKA/train_set_T11SKA_DISTRI1.npy").tolist()
