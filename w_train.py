@@ -53,9 +53,9 @@ if __name__ == "__main__":
     # ]
 
     # Load the provided train datas.
-    train_dataset = np.load(r"../WSTATT_DATA/DISTRIBUTION/T11SKA/train_set_T11SKA_DISTRI1.npy")
-    val_dataset = np.load(r"../WSTATT_DATA/DISTRIBUTION/T11SKA/validation_set_T11SKA_DISTRI1.npy")
-    test_dataset = np.load(r"../WSTATT_DATA/DISTRIBUTION/T11SKA/test_set_T11SKA_DISTRI1.npy")
+    train_dataset = np.load(r"../WSTATT_DATA/DISTRIBUTION/T11SKA/train_set_T11SKA_DISTRI1.npy").tolist()
+    val_dataset = np.load(r"../WSTATT_DATA/DISTRIBUTION/T11SKA/validation_set_T11SKA_DISTRI1.npy").tolist()
+    test_dataset = np.load(r"../WSTATT_DATA/DISTRIBUTION/T11SKA/test_set_T11SKA_DISTRI1.npy").tolist()
 
     # shuffled = random.sample(dataset, len(dataset))
     # split_idx = int(len(shuffled) * 0.6)
