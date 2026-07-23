@@ -1,4 +1,3 @@
-from genericpath import isfile
 import os
 import sys
 
@@ -14,6 +13,8 @@ import random
 import time
 from re import split
 from pathlib import Path
+from genericpath import isfile
+
 import torch
 import numpy as np
 from data import get_data_loader

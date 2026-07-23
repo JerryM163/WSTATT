@@ -1,3 +1,13 @@
+import os
+import sys
+
+# Drop the cluster's default library injection tracking completely
+os.environ.pop("LD_LIBRARY_PATH", None)
+
+# Force the environment link loader to stick strictly to the conda environment
+conda_lib = "/users/0/hinsv006/miniconda3/envs/jerry/lib"
+os.environ["LD_LIBRARY_PATH"] = f"{conda_lib}:/lib64"
+sys.path.insert(0, conda_lib)
 
 import torch
 import random
@@ -24,7 +34,7 @@ if __name__ == "__main__":
     weather_bands = ["dayl", "prcp", "srad", "swe", "tmax", "tmin", "vp"]
     bands = [0, 1, 2, 3, 4, 5, 6]
 
-    timestamps = 18
+    timestamps = 24
 
     val_dataset = np.load(r"../WSTATT_DATA/DISTRIBUTION/T11SKA/validation_set_T11SKA_DISTRI1.npy").tolist()
 
