@@ -43,9 +43,7 @@ if __name__ == "__main__":
     output_patch_size = 32
     batch_size = 16
 
-    NUM_SAMPLES = 32
-
-    timestamps = 6
+    timestamps = 18
 
     # Load the provided datasets.
     train_dataset = np.load(r"../WSTATT_DATA/DISTRIBUTION/T11SKA/train_set_T11SKA_DISTRI1.npy").tolist()
@@ -78,7 +76,7 @@ if __name__ == "__main__":
 
     epoch_loss = 0
 
-    sample_grids = random.sample(train_dataset, NUM_SAMPLES)
+    sample_grids = random.sample(train_dataset, len(train_dataset))
 
     for grid_num, grid in enumerate(sample_grids):
         grid_time = time.time()

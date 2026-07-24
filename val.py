@@ -30,7 +30,7 @@ if __name__ == "__main__":
 
     batch_size = 16
 
-    timestamps = 12
+    timestamps = 18
 
     val_dataset = np.load(r"../WSTATT_DATA/DISTRIBUTION/T11SKA/validation_set_T11SKA_DISTRI1.npy").tolist()
 
