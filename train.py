@@ -45,7 +45,7 @@ if __name__ == "__main__":
 
     NUM_SAMPLES = 32
 
-    timestamps = 6
+    timestamps = 12
 
     # Load the provided datasets.
     train_dataset = np.load(r"../WSTATT_DATA/DISTRIBUTION/T11SKA/train_set_T11SKA_DISTRI1.npy").tolist()
@@ -112,7 +112,7 @@ if __name__ == "__main__":
         epoch_loss += grid_loss
 
     epoch_loss = epoch_loss / (grid_num + 1)
-    print(f'\tTest Loss: {epoch_loss:.4f}, Time: {(time.time() - start_time):.2f}')
+    print(f'\tTimestamps: {timestamps}, Test Loss: {epoch_loss:.4f}, Time: {(time.time() - start_time):.2f}')
 
     train_loss.append(epoch_loss)
 
