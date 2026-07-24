@@ -201,7 +201,7 @@ class STATT(torch.nn.Module):
         return out
 
     def __str__(self):
-        return "Baseline STATT Model"
+        return "STATT Model"
 
 class WSTATT(torch.nn.Module):
     def __init__(self, in_channels, in_channels_w, out_channels):
@@ -217,8 +217,10 @@ class WSTATT(torch.nn.Module):
         # Each block: Conv -> ReLU -> Conv -> ReLU -> MaxPool
         self.conv1_1 = torch.nn.Conv2d(in_channels, s_fe, 3, padding=1)  # First convolution
         self.conv1_2 = torch.nn.Conv2d(s_fe, s_fe, 3, padding=1)         # Second convolution
+
         self.conv2_1 = torch.nn.Conv2d(s_fe, s_fe*2, 3, padding=1)       # Increase features
         self.conv2_2 = torch.nn.Conv2d(s_fe*2, s_fe*2, 3, padding=1)     # Maintain features
+
         self.conv3_1 = torch.nn.Conv2d(s_fe*2, s_fe*4, 3, padding=1)     # Double features again
         self.conv3_2 = torch.nn.Conv2d(s_fe*4, s_fe*4, 3, padding=1)     # Maintain features
 
@@ -367,4 +369,4 @@ class WSTATT(torch.nn.Module):
         return out
 
     def __str__(self):
-        return "Baseline WSTATT Model"
+        return "WSTATT Model"
