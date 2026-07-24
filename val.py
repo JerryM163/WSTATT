@@ -135,9 +135,6 @@ if __name__ == "__main__":
 
     test_loss.append(epoch_loss)  # Store for later analysis
 
-    print('Overall unknown:', np.sum(pred_array == 100), '  labels:', np.sum(label_array == 100))
-    print(classification_report(label_array, pred_array, target_names=class_names, digits=4,labels = labels_list))
-
     # Compute support (i.e., the number of occurrences per class in label_array)
     unique_labels, support = np.unique(label_array, return_counts=True)
 
