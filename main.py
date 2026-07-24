@@ -110,7 +110,7 @@ if __name__ == "__main__":
 
     for epoch in np.arange(max_epochs):
         epoch_train_loss = train_epoch(
-            epoch=epoch+1,
+            epoch=epoch,
             model=model,
             unknown_class=unknown_class,
             learning_rate=learning_rate,

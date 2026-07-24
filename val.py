@@ -115,7 +115,7 @@ def validate_epoch(epoch, model, unknown_class, learning_rate, val_dataset, batc
     # Calculate overall test loss
     epoch_loss = epoch_loss / (grid_num + 1)
 
-    print(f'\tTest Loss:{epoch_loss:.4f}')
+    print(f'\tValidation Loss:{epoch_loss:.4f}')
 
     # Compute support (i.e., the number of occurrences per class in label_array)
     unique_labels, support = np.unique(label_array, return_counts=True)

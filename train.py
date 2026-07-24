@@ -77,6 +77,6 @@ def train_epoch(epoch, model, unknown_class, learning_rate, dataset, batch_size,
         epoch_loss += grid_loss
 
     epoch_loss = epoch_loss / (grid_num + 1)
-    print(f'\tTest Loss: {epoch_loss:.4f}, Time: {(time.time() - start_time):.2f}')
+    print(f'\tTrain Loss: {epoch_loss:.4f}, Time: {(time.time() - start_time):.2f}')
 
     return epoch_loss
