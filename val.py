@@ -66,14 +66,14 @@ def validate_epoch(epoch, model, unknown_class, learning_rate, val_dataset, batc
             label_tensor = label_patch.type(torch.long).to(device)
 
             with torch.no_grad():
-                if model is STATT:
-                    patch_out = model(image_tensor)
+                if isinstance(model, STATT):
+                    out = model(image_tensor)
                 else:
-                    patch_out = model(image_tensor, weather_tensor)
+                    out = model(image_tensor, weather_tensor)
 
             # Convert model outputs to probabilities using softmax
             # dim=1 applies softmax across classes (channel dimension)
-            patch_prob_out = torch.nn.functional.softmax(patch_out, dim=1)
+            patch_prob_out = torch.nn.functional.softmax(out, dim=1)
 
             # Detach from computation graph and move to CPU
             patch_prob_out_numpy = patch_prob_out.cpu().detach().numpy()
@@ -83,7 +83,7 @@ def validate_epoch(epoch, model, unknown_class, learning_rate, val_dataset, batc
             pred_patch = np.argmax(patch_prob_out_numpy, axis=1)
 
             # Calculate loss
-            batch_loss = criterion(patch_out, label_tensor)
+            batch_loss = criterion(out, label_tensor)
 
             grid_loss += batch_loss.item()  # Accumulate batch loss
 
