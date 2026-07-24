@@ -116,4 +116,6 @@ if __name__ == "__main__":
 
     train_loss.append(epoch_loss)
 
-    torch.save(wstatt.state_dict(), "Wstatt.pt")
+    save = input("Save this model (y/n)?: ")
+    if str(save).lower() == "y":
+        torch.save(wstatt.state_dict(), "Wstatt.pt")
