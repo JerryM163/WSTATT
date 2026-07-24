@@ -1,67 +1,47 @@
-import os
-import sys
-
-# Drop the cluster's default library injection tracking completely
-os.environ.pop("LD_LIBRARY_PATH", None)
-
-# Force the environment link loader to stick strictly to the conda environment
-conda_lib = "/users/0/hinsv006/miniconda3/envs/jerry/lib"
-os.environ["LD_LIBRARY_PATH"] = f"{conda_lib}:/lib64"
-sys.path.insert(0, conda_lib)
+import random
+import time
 
 import torch
-import random
 import numpy as np
 from sklearn.metrics import confusion_matrix, f1_score, accuracy_score, classification_report
 
-from Models.statt import STATT
-from data import get_data_loader
+from Utils.device import device
+from Utils.data import get_data_loader
+from Models.statt import STATT, WSTATT
 
-torch.backends.cudnn.enabled = False
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
-print("Active Device Status:", "cuda" if torch.cuda.is_available() else "cpu")
+# Initialize metrics storage
+test_loss = []    # Track loss per test run
 
-if __name__ == "__main__":
-    in_channels = 10
-    out_channels = 33
+def validate_epoch(epoch, model, unknown_class, learning_rate, val_dataset, batch_size, timestamps, threshold, class_names, labels_list, bands=[]):
+    '''
+    Validates a specified model for a single epoch 
 
-    unknown_class = 100
-    learning_rate = 0.0001
+    Args:
+        epoch - the current training epoch the model is on
+        model - either STATT or WSTATT
+        unknown_class - specifies which crop label to ignore
+        learning_rate - specifies the step size the model takes to correct itself during optimization
+        dataset - pre-compiled training dataset of 34 satellite grids
+        batch_size - the number of batches processed at a time from the data loader
+        timestamps - specifies the equally-spaced points of the year that we are looking at the satellite images from
+        threshold - used to determine supported labels
+        class_names - list of crop label names
+        labels_list - list of numbers corresponding with class_names
+        bands - specifies the weather bands taken into account when WSTATT is selected
+    Returns:
+        epoch_loss - the average loss during validation for this epoch
+    '''
+    print(f"########## Vaidating EPOCH {epoch} ##########")
+    label_list = []   # Collect all ground truth labels
+    pred_list = []    # Collect all model predictions
 
-    batch_size = 16
-
-    timestamps = 18
-
-    val_dataset = np.load(r"../WSTATT_DATA/DISTRIBUTION/T11SKA/validation_set_T11SKA_DISTRI1.npy").tolist()
-
-    print("########## TEST MODELS ##########")
-    model = STATT(
-        in_channels=in_channels,
-        out_channels=out_channels
-    )
-    print("Model Built")
-
-    model = model.to(device)
-
-    print("### LOAD MODEL ###")
-    model.load_state_dict(torch.load("Statt.pt"),strict = False)
-    print("Model Loaded")
+    start_time = time.time()
 
     criterion = torch.nn.CrossEntropyLoss(ignore_index=unknown_class)
 
-    print("#######################################################################")
+    optim = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
-    threshold = 50000
-    labels_list = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32]
-    class_names = ['Corn','Cotton','Rice','Sunflower','Barley','Winter_Wheat','Safflower','Dry Beans','Onions','Tomatoes',
-                   'Cherries','Grapes','Citrus','Almonds','Walnut','Pistachio','Garlic','Olives','Pomegranates','Alfalfa',
-                   'Hay','Barren_land','Fallow_and_Idle','Deciduous_Forests','Evergreen_forest','Mixed_Forests',
-                   'Clover_and_wildflower','Shrubland','Grass','Woody_wetlands','Herbaceous_Wetlands','Water','Urban']
-
-    # Initialize metrics storage
-    test_loss = []    # Track loss per test run
-    label_list = []   # Collect all ground truth labels
-    pred_list = []    # Collect all model predictions
+    model = model.to(device)
 
     # Set model to evaluation mode (disables dropout/BatchNorm)
     model.eval()
@@ -73,7 +53,7 @@ if __name__ == "__main__":
     # Process each grid in test dataset
     for grid_num, grid in enumerate(sample_grids):
         print("\x1b[2K" + f"Getting data loader for grid {grid}...", end="\r", flush=True)
-        data_loader = get_data_loader(grid, batch_size, timestamps)
+        data_loader = get_data_loader(grid, batch_size, bands, timestamps)
 
         grid_loss = 0  # Accumulate loss for this grid
         # Process all batches in grid
@@ -82,9 +62,14 @@ if __name__ == "__main__":
 
             # Forward pass WITHOUT gradient calculation (saves memory)
             image_tensor = image_patch.to(device, non_blocking=True)
+            weather_tensor = weather_patch.to(device, non_blocking=True)
+            label_tensor = label_patch.type(torch.long).to(device)
 
             with torch.no_grad():
-                patch_out = model(image_tensor)
+                if model is STATT:
+                    patch_out = model(image_tensor)
+                else:
+                    patch_out = model(image_tensor, weather_tensor)
 
             # Convert model outputs to probabilities using softmax
             # dim=1 applies softmax across classes (channel dimension)
@@ -97,11 +82,8 @@ if __name__ == "__main__":
             # Shape: [batch, height, width]
             pred_patch = np.argmax(patch_prob_out_numpy, axis=1)
 
-            # Prepare labels for loss calculation
-            label_patch_device = label_patch.type(torch.long).to(device)
-
             # Calculate loss
-            batch_loss = criterion(patch_out, label_patch_device)
+            batch_loss = criterion(patch_out, label_tensor)
 
             grid_loss += batch_loss.item()  # Accumulate batch loss
 
@@ -133,8 +115,6 @@ if __name__ == "__main__":
 
     print(f'\tTest Loss:{epoch_loss:.4f}')
 
-    test_loss.append(epoch_loss)  # Store for later analysis
-
     # Compute support (i.e., the number of occurrences per class in label_array)
     unique_labels, support = np.unique(label_array, return_counts=True)
 
@@ -144,6 +124,12 @@ if __name__ == "__main__":
     # Create a filtered class name list
     filtered_class_names = [class_names[i] for i in range(len(class_names)) if labels_list[i] in valid_labels]
 
+    # Compute accuracy score for selected labels
+    print(f"## Accuracy Score for EPOCH {epoch} ##")
+    print(accuracy_score(label_array, pred_array))
+
     # Compute classification report only for selected labels
-    print("## Classification Report ##")
+    print(f"## Classification Report for EPOCH {epoch} ##")
     print(classification_report(label_array, pred_array, target_names=filtered_class_names, digits=4, labels=valid_labels))
+
+    return epoch_loss
