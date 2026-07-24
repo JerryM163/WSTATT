@@ -30,7 +30,7 @@ if __name__ == "__main__":
 
     batch_size = 16
 
-    timestamps = 18
+    timestamps = 6
 
     val_dataset = np.load(r"../WSTATT_DATA/DISTRIBUTION/T11SKA/validation_set_T11SKA_DISTRI1.npy").tolist()
 
@@ -39,13 +39,13 @@ if __name__ == "__main__":
         in_channels=in_channels,
         out_channels=out_channels
     )
-    print("WSTATT Model Built")
+    print("Model Built")
 
     model = model.to(device)
 
-    print("LOAD MODEL")
-    model.load_state_dict(torch.load("Wstatt.pt"),strict = False)
-    print("WSTATT Model Loaded")
+    print("### LOAD MODEL ###")
+    model.load_state_dict(torch.load("Statt.pt"),strict = False)
+    print("Model Loaded")
 
     criterion = torch.nn.CrossEntropyLoss(ignore_index=unknown_class)
 
