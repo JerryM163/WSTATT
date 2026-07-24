@@ -25,8 +25,6 @@ weather_data_dir = Path(r"../WSTATT_DATA/WEATHER/DAYMET")
 input_patch_size = 32
 output_patch_size = 32
 
-GRID_CACHE = {}
-
 class SEGMENTATION(Dataset):
     """Custom PyTorch Dataset for satellite image patches with weather data.
 
@@ -164,11 +162,7 @@ def get_data_loader(grid, batch_size, bands, timestamps):
     Returns:
         data_loader - A data_loader object containing shuffled batches of image, weather, and label patches
     '''
-    if grid in GRID_CACHE:
-        image_patches, weather_patches, label_patches = GRID_CACHE[grid]
-    else:
-        image_patches, weather_patches, label_patches = create_patches(grid, bands, timestamps)
-        GRID_CACHE[grid] = (image_patches, weather_patches, label_patches)
+    image_patches, weather_patches, label_patches = create_patches(grid, bands, timestamps)
 
     data = SEGMENTATION(image_patches, weather_patches, label_patches)
 
