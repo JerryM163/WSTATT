@@ -140,7 +140,7 @@ if __name__ == "__main__":
         val_loss.append(epoch_val_loss)
 
         if early_stopper.early_stop(epoch_val_loss):
-            print(f"Early Stopped Activated at EPOCH {epoch}")
+            print(f"Early Stopped Activated at EPOCH {epoch+1}")
             break
         
     print("Model COMPLETE")

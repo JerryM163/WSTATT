@@ -27,7 +27,7 @@ def train_epoch(epoch, model, unknown_class, learning_rate, dataset, batch_size,
     Returns:
         epoch_loss - the average loss during training for this epoch
     '''
-    print(f"########## Training EPOCH {epoch} ##########")
+    print(f"########## Training EPOCH {epoch+1} ##########")
     start_time = time.time()
 
     model = model.to(device)
