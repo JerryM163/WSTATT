@@ -129,7 +129,7 @@ if __name__ == "__main__":
             model=model,
             unknown_class=unknown_class,
             learning_rate=learning_rate,
-            train_dataset=train_dataset,
+            val_dataset=val_dataset,
             batch_size=batch_size,
             timestamps=timestamps,
             threshold=threshold,
