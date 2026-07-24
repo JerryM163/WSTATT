@@ -72,7 +72,7 @@ def train_epoch(epoch, model, unknown_class, learning_rate, dataset, batch_size,
             grid_loss += batch_loss.item()
 
         grid_loss = grid_loss / (batch + 1) 
-        print("\x1b[2K" + f'Grid Num: {grid_num + 1}, Grid: {grid}, Loss: {grid_loss:.4f}, Time: {(time.time() - grid_time):.2f}')
+        print("\x1b[2K" + f'Grid Num: {grid_num+1:02}, Grid: {grid}, Loss: {grid_loss:.4f}, Time: {(time.time() - grid_time):.2f}')
 
         epoch_loss += grid_loss
 

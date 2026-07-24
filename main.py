@@ -55,10 +55,7 @@ if __name__ == "__main__":
 
     # --- Early Stopping Variables ---
     patience = 3
-    min_delta = 10
-
-    early_stopper = EarlyStopper(patience, min_delta)
-
+    min_delta = 0.05
     
     print("########## BUILDING MODELS ##########")
     # Get which model the user chooses
@@ -92,14 +89,14 @@ if __name__ == "__main__":
             in_channels_w=in_channels_weather,
             out_channels=out_channels,
         )
-        model_file = "Wstatt.pt"
+        model_file = f"Wstatt-{timestamps}-{bands.sort().join("-")}.pt"
     else:
         # Create the STATT model
         model = STATT(
             in_channels=in_channels,
             out_channels=out_channels,
         )
-        model_file = "Statt.pt"
+        model_file = f"Statt-{timestamps}.pt"
 
     # Load the model if a file already exists in the same directory
     if os.path.isfile(model_file):
@@ -107,6 +104,9 @@ if __name__ == "__main__":
         print(f"{model} LOADED")
     else:
         print(f"{model} COMPLETE")
+
+    early_stopper = EarlyStopper(patience, min_delta)
+    print(f"Early Stopper Created with PATIENCE: {patience} and MAX EPOCHS: {max_epochs}")
 
     for epoch in np.arange(max_epochs):
         epoch_train_loss = train_epoch(
@@ -119,7 +119,10 @@ if __name__ == "__main__":
             timestamps=timestamps,
             bands=bands,
         )
-        train_loss += epoch_train_loss
+        # Saves the model with its current parameters when its epoch_train_loss is less than the previous epoch
+        if(len(train_loss)==0 or epoch_train_loss < train_loss[-1]):
+            torch.save(model.state_dict(), model_file)            
+        train_loss.append(epoch_train_loss)
 
         epoch_val_loss = validate_epoch(
             epoch=epoch,
@@ -134,7 +137,12 @@ if __name__ == "__main__":
             labels_list=labels_list,
             bands=bands,
         )
-        val_loss += epoch_val_loss
+        val_loss.append(epoch_val_loss)
 
         if early_stopper.early_stop(epoch_val_loss):
+            print(f"Early Stopped Activated at EPOCH {epoch}")
             break
+        
+    print("Model COMPLETE")
+
+    
