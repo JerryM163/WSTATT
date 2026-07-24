@@ -62,11 +62,11 @@ def validate_epoch(epoch, model, unknown_class, learning_rate, val_dataset, batc
         for batch, [image_patch, weather_patch, label_patch] in enumerate(data_loader):
             print("\x1b[2K" + f"Testing on {grid}'s batch {batch + 1}", end="\r", flush=True)
 
-            # Forward pass WITHOUT gradient calculation (saves memory)
-            image_tensor = image_patch.to(device, non_blocking=True)
-            weather_tensor = weather_patch.to(device, non_blocking=True)
+            image_tensor = image_patch.to(device)
+            weather_tensor = weather_patch.to(device)
             label_tensor = label_patch.type(torch.long).to(device)
 
+            # Forward pass WITHOUT gradient calculation (saves memory)
             with torch.no_grad():
                 if isinstance(model, STATT):
                     out = model(image_tensor)

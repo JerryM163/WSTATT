@@ -54,9 +54,9 @@ def train_epoch(epoch, model, unknown_class, learning_rate, dataset, batch_size,
             print("\x1b[2K" + f"Training on {grid}'s batch {batch + 1}", end="\r", flush=True)
             optim.zero_grad()
 
-            image_tensor = image_patch.to(device, non_blocking=True)
-            weather_tensor = weather_patch.to(device, non_blocking=True)
-            label_patch = label_patch.type(torch.long).to(device, non_blocking=True)
+            image_tensor = image_patch.to(device)
+            weather_tensor = weather_patch.to(device)
+            label_patch = label_patch.type(torch.long).to(device)
 
             if isinstance(model, STATT):
                 out = model(image_tensor)
