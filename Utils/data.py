@@ -177,7 +177,6 @@ def get_data_loader(grid, batch_size, bands, timestamps):
         batch_size=batch_size,
         shuffle=True,
         num_workers=4,
-        pin_memory=True,
         persistent_workers=True,
         drop_last=False
     )
