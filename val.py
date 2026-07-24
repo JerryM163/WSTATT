@@ -52,7 +52,7 @@ def validate_epoch(epoch, model, unknown_class, learning_rate, val_dataset, batc
     epoch_loss = 0  # Accumulate loss across grids
     # Process each grid in test dataset
     for grid_num, grid in enumerate(sample_grids):
-        print("\x1b[2K" + f"Getting data loader for grid {grid+1:.02}...", end="\r", flush=True)
+        print("\x1b[2K" + f"Getting data loader for grid {grid}...", end="\r", flush=True)
         data_loader = get_data_loader(grid, batch_size, bands, timestamps)
 
         grid_loss = 0  # Accumulate loss for this grid
