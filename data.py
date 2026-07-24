@@ -182,15 +182,16 @@ def w_create_patches(grid):
 
     # Load label data (2D array: [height, width] - ground truth for each pixel)
     label = np.load(os.path.join(combined_label_data_dir, grid + "_combined_label.npy"))
-    sun_bands = [0, 2, 4, 5]
-    #water_bands = [1, 3, 6]
+    #sun_bands = [0, 2, 4, 5]
+    water_bands = [1, 3, 6]
 
     # Load weather data (3D array: [timesteps, weather_features])
     weather = np.load(os.path.join(weather_data_dir, grid + '_daymet_10980_global_normalised_year_day_average_grid_array.npy'))
 
     # Selects the weather array at 1 band (timestamps,band,features)
-    weather = weather[:,sun_bands,:,:]
-
+    #weather = weather[:,sun_bands,:,:]
+    weather = weather[:,water_bands,:,:]
+    
     # Handle missing values in weather data by replacing NaNs with 0
     weather[np.isnan(weather)] = 0
 

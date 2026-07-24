@@ -129,8 +129,8 @@ if __name__ == "__main__":
         epoch_loss += grid_loss
 
     epoch_loss = epoch_loss / (grid_num + 1)
-    print(f'\tBand: Sunbands, Test Loss: {epoch_loss:.4f}, Epoch Time: {(time.time() - start_time):.2f},')
-
+    #print(f'\tBand: Sunbands, Test Loss: {epoch_loss:.4f}, Epoch Time: {(time.time() - start_time):.2f},')
+    print(f'\tBand: Waterbands, Test Loss: {epoch_loss:.4f}, Epoch Time: {(time.time() - start_time):.2f},')
     train_loss.append(epoch_loss)
 
     torch.save(wstatt.state_dict(), "Wstatt.pt")
