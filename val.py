@@ -82,10 +82,9 @@ if __name__ == "__main__":
 
             # Forward pass WITHOUT gradient calculation (saves memory)
             image_tensor = image_patch.to(device, non_blocking=True)
-            weather_tensor = weather_patch.to(device, non_blocking=True)
 
             with torch.no_grad():
-                patch_out = model(image_tensor, weather_tensor)
+                patch_out = model(image_tensor)
 
             # Convert model outputs to probabilities using softmax
             # dim=1 applies softmax across classes (channel dimension)
