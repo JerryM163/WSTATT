@@ -58,7 +58,7 @@ def train_epoch(epoch, model, unknown_class, learning_rate, dataset, batch_size,
             weather_tensor = weather_patch.to(device, non_blocking=True)
             label_patch = label_patch.type(torch.long).to(device, non_blocking=True)
 
-            if model is STATT:
+            if isinstance(model, STATT):
                 out = model(image_tensor)
             else:
                 out = model(image_tensor, weather_tensor)
