@@ -79,7 +79,8 @@ if __name__ == "__main__":
         print("Weather bands: [dayl, prcp, srad, swe, tmax, tmin, vp]")
         bands = input("What bands of weather do you need (Ex. 0 2 4 5)?: ")
         bands = bands.split()
-        bands = [int(band) for band in bands].sort()
+        bands = [int(band) for band in bands]
+        bands.sort()
 
         in_channels_weather = len(bands)
         
