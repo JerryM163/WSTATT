@@ -55,7 +55,7 @@ if __name__ == "__main__":
 
     # --- Early Stopping Variables ---
     patience = 3
-    min_delta = 0.05
+    min_delta = 0.01
     
     print("########## BUILDING MODELS ##########")
     # Get which model the user chooses
