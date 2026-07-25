@@ -79,7 +79,7 @@ if __name__ == "__main__":
         print("Weather bands: [dayl, prcp, srad, swe, tmax, tmin, vp]")
         bands = input("What bands of weather do you need (Ex. 0 2 4 5)?: ")
         bands = bands.split()
-        bands = [int(band) for band in bands]
+        bands = [int(band) for band in bands].sort()
 
         in_channels_weather = len(bands)
         
@@ -89,7 +89,7 @@ if __name__ == "__main__":
             in_channels_w=in_channels_weather,
             out_channels=out_channels,
         )
-        model_file = f"Wstatt-{timestamps}-{bands.sort().join("-")}.pt"
+        model_file = f"Wstatt-{timestamps}-{"-".join([str(band) for band in bands])}.pt"
     else:
         # Create the STATT model
         model = STATT(
@@ -140,9 +140,10 @@ if __name__ == "__main__":
         val_loss.append(epoch_val_loss)
 
         if early_stopper.early_stop(epoch_val_loss):
-            print(f"Early Stopped Activated at EPOCH {epoch+1}")
+            print(f"Early Stopping Activated at EPOCH {epoch+1}")
             break
         
-    print("Model COMPLETE")
+    torch.save(model.state_dict(), model_file)
+    print("Model SAVED")
 
     
