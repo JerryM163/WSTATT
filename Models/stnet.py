@@ -23,7 +23,7 @@ class STNET(torch.nn.Module):
 
         # --- Decoder Path (Upsampling) ---
         # Upsampling Block 2 (from deepest features)
-        self.unpool2 = torch.nn.ConvTranspose2d(512, 128, kernel_size=2, stride=2)  # 2x upsampling
+        self.unpool2 = torch.nn.ConvTranspose2d(256, 128, kernel_size=2, stride=2)  # 2x upsampling
         self.upconv2_1 = torch.nn.Conv2d(256, 128, 3, padding=1)       # After skip connection
         self.upconv2_2 = torch.nn.Conv2d(128, 128, 3, padding=1)       # Output: 128 channels
 
