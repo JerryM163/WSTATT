@@ -15,6 +15,7 @@ import torch
 import numpy as np
 
 from Models.statt import STATT, WSTATT
+from Models.stet import STNET
 
 from Utils.early_stopper import EarlyStopper
 from train import train_epoch
@@ -70,8 +71,10 @@ if __name__ == "__main__":
 
     if model_choice == "w":
         print("WSTATT Selected!")
-    else:
+    elif model_choice == "s":
         print("STATT Selected!")
+    else:
+        print("STNET Selected!")
     
     # Get the number of timestamps the user is testing with
     print("## Choosing Your Timestamps ##")
@@ -96,13 +99,19 @@ if __name__ == "__main__":
             out_channels=out_channels,
         )
         model_file = f"Wstatt-{timestamps}-{"-".join([str(band) for band in bands])}.pt"
-    else:
+    elif model_choice == "s":
         # Create the STATT model
         model = STATT(
             in_channels=in_channels,
             out_channels=out_channels,
         )
         model_file = f"Statt-{timestamps}.pt"
+    else:
+        model = STNET(
+            in_channels=in_channels,
+            out_channels=out_channels,
+        )
+        model_file = f"Stnet-{timestamps}.pt"
 
     # Load the model if a file already exists in the same directory
     if os.path.isfile(model_file):

@@ -67,10 +67,10 @@ def validate_epoch(epoch, model, unknown_class, optim, criterion,
 
             # Forward pass WITHOUT gradient calculation (saves memory)
             with torch.no_grad():
-                if isinstance(model, STATT):
-                    out = model(image_tensor)
-                else:
+                if isinstance(model, WSTATT):
                     out = model(image_tensor, weather_tensor)
+                else:
+                    out = model(image_tensor)
 
             # Convert model outputs to probabilities using softmax
             # dim=1 applies softmax across classes (channel dimension)
