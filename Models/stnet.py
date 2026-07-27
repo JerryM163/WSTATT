@@ -32,6 +32,9 @@ class STNET(torch.nn.Module):
         self.unpool1 = torch.nn.ConvTranspose2d(128, 64, kernel_size=2, stride=2)  # 2x upsampling
         self.upconv1_1 = torch.nn.Conv2d(128, 64, 3, padding=1)        # After skip connection
         self.upconv1_2 = torch.nn.Conv2d(64, 64, 3, padding=1)         # Output: 64 channels
+
+        # --- Output layer (classifier) ---
+        self.out = torch.nn.Conv2d(64, out_channels, kernel_size=1, padding=0)  # 1x1 conv
     
     def getConvBlock(self, in_channels, out_channels):
         """Blueprint for similar Convolutional Layers 
