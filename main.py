@@ -66,8 +66,7 @@ if __name__ == "__main__":
     print("########## BUILDING MODELS ##########")
     # Get which model the user chooses
     print("## Choosing Your Model ##")
-    while model_choice != "w" and model_choice != "s":
-        model_choice = input("What model are you using (W)STATT/(S)TATT:? ").strip().lower()
+    model_choice = input("What model are you using (W)STATT/(S)TATT:? ").strip().lower()
 
     if model_choice == "w":
         print("WSTATT Selected!")
