@@ -40,15 +40,6 @@ if __name__ == "__main__":
     unknown_class = 100
     learning_rate = 0.0001
 
-    criterion = torch.nn.CrossEntropyLoss(
-        ignore_index=unknown_class
-    )
-
-    optimizer = torch.optim.Adam(
-        model.parameters(),
-        lr=learning_rate
-    )
-
     train_dataset = np.load(r"../WSTATT_DATA/DISTRIBUTION/T11SKA/train_set_T11SKA_DISTRI1.npy").tolist()
     val_dataset = np.load(r"../WSTATT_DATA/DISTRIBUTION/T11SKA/validation_set_T11SKA_DISTRI1.npy").tolist()
 
@@ -120,6 +111,14 @@ if __name__ == "__main__":
     else:
         print(f"{model} COMPLETE")
 
+    # --- Initialize For Use During Training/Validation Loop ---
+    criterion = torch.nn.CrossEntropyLoss(
+        ignore_index=unknown_class
+    )
+    optimizer = torch.optim.Adam(
+        model.parameters(),
+        lr=learning_rate
+    )
     early_stopper = EarlyStopper(
         patience=patience, 
         min_delta=min_delta, 
