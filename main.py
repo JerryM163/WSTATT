@@ -15,7 +15,7 @@ import torch
 import numpy as np
 
 from Models.statt import STATT, WSTATT
-from Models.stet import STNET
+from Models.stnet import STNET
 
 from Utils.early_stopper import EarlyStopper
 from train import train_epoch

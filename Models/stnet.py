@@ -90,56 +90,56 @@ class STNET(torch.nn.Module):
         batches, timestamps, channels, height, width = x.shape
 
         # Combine batch and sequence dimensions
-        x = x.view(-1, channels, height, width) # Output: (384,10,32,32)
+        x = x.view(-1, channels, height, width) # Output: (batches*timestamps,10,32,32)
         
         # --- Encoder Path ---
         # Pass through encoder's 1st convolutional layer
-        conv1 = self.conv1(x) # Output: (384,64,32,32)
+        conv1 = self.conv1(x) # Output: (batches*timestamps,64,32,32)
 
         # Flatten spatial dimensions to conserve pixel-wise segmentation
         conv1_reshaped = conv1.view(batches*timestamps,64,height*width)
-        conv1_reshaped = conv1_reshaped.permute(2,0,1) # Output: (1024,384,64)
+        conv1_reshaped = conv1_reshaped.permute(2,0,1) # Output: (1024,batches*timestamps,64)
 
         # Pass through encoder's 1st Transformer Encoder
-        trans1 = self.trans1(conv1_reshaped) # Output: (1024,384,64)
+        trans1 = self.trans1(conv1_reshaped) # Output: (1024,batches*timestamps,64)
 
         # Reshape transformer's output to show the features once again
         trans1 = trans1.permute(1,2,0)
-        trans1 = trans1.view(batches*timestamps,64,height,width) # Output: (384,64,32,32)
+        trans1 = trans1.view(batches*timestamps,64,height,width) # Output: (batches*timestamps,64,32,32)
 
         # Halve the spatial resolution (divide features by 2)
-        maxpool1 = self.maxpool(trans1) # Output: (384,64,16,16)
+        maxpool1 = self.maxpool(trans1) # Output: (batches*timestamps,64,16,16)
 
         # Pass through encoder's 2nd convolutional year
-        conv2 = self.conv2(maxpool1) # Output: (384,128,16,16)
+        conv2 = self.conv2(maxpool1) # Output: (batches*timestamps,128,16,16)
 
         # Flatten spatial dimensions to conserve pixel-wise segmentation
-        conv2_reshaped = conv2.view(batches*timestamps,128,256)
-        conv2_reshaped = conv2_reshaped.permute(2,0,1) # Output: (256,384,128)
+        conv2_reshaped = conv2.view(batches,128,256)
+        conv2_reshaped = conv2_reshaped.permute(2,0,1) # Output: (256,16,128)
 
         # Pass through encoder's 1st Transformer Encoder
-        trans2 = self.trans2(conv2_reshaped) # Output: (256,384,128)
+        trans2 = self.trans2(conv2_reshaped) # Output: (256,batches*timestamps,128)
 
         # Reshape transformer's output to show the features once again
         trans2 = trans2.permute(1,2,0)
-        trans2 = trans2.view(batches*timestamps,128,16,16) # Output: (384,128,16,16)
+        trans2 = trans2.view(batches*timestamps,128,16,16) # Output: (batches*timestamps,128,16,16)
 
         # Halve the spatial resolution (divide features by 2)
-        maxpool2 = self.maxpool(trans2) # Output: (384,128,8,8)
+        maxpool2 = self.maxpool(trans2) # Output: (batches*timestamps,128,8,8)
 
         # Pass through encoder's 3rd convolutional year
-        conv3 = self.conv3(maxpool2) # Output: (384,256,8,8)
+        conv3 = self.conv3(maxpool2) # Output: (batches*timestamps,256,8,8)
 
         # Flatten spatial dimensions to conserve pixel-wise segmentation
         conv3_reshaped = conv3.view(batches*timestamps,128,256)
-        conv3_reshaped = conv3_reshaped.permute(2,0,1) # Output: (64,384,256)
+        conv3_reshaped = conv3_reshaped.permute(2,0,1) # Output: (64,batches*timestamps,256)
 
         # Pass through encoder's 1st Transformer Encoder
-        trans3 = self.trans3(conv3_reshaped) # Output: (64,384,256)
+        trans3 = self.trans3(conv3_reshaped) # Output: (64,batches*timestamps,256)
 
         # Reshape transformer's output to show the features once again
         trans3 = trans3.permute(1,2,0)
-        trans3 = trans3.view(batches,timestamps,256,8,8) # Output: (16,24,256,8,8)
+        trans3 = trans3.view(batches,timestamps,256,8,8) # Output: (16,timestamps,256,8,8)
 
         # Average across the time dimension 
         encoder_out = trans3.mean(dim=1) # Output: (16,256,8,8)
