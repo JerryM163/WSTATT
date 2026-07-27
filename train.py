@@ -11,15 +11,15 @@ from Utils.device import device
 from Utils.data import get_data_loader
 from Models.statt import STATT, WSTATT
 
-def train_epoch(epoch, model, unknown_class, learning_rate, dataset, batch_size, timestamps, bands=[]):
+def train_epoch(epoch, model, optim, criterion, dataset, batch_size, timestamps, bands=[]):
     '''
     Trains a specificed model for a single epoch
 
     Args:
         epoch - the current training epoch the model is on
         model - either STATT or WSTATT
-        unknown_class - specifies which crop label to ignore
-        learning_rate - specifies the step size the model takes to correct itself during optimization
+        optim - Adam optimizer to accumulate momentum
+        criterion - Cross Entropy Loss Function
         dataset - pre-compiled training dataset of 34 satellite grids
         batch_size - the number of batches processed at a time from the data loader
         timestamps - specifies the equally-spaced points of the year that we are looking at the satellite images from
@@ -31,10 +31,6 @@ def train_epoch(epoch, model, unknown_class, learning_rate, dataset, batch_size,
     start_time = time.time()
 
     model = model.to(device)
-
-    criterion = torch.nn.CrossEntropyLoss(ignore_index=unknown_class)
-
-    optim = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
     model.train()
 

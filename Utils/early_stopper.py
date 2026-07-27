@@ -1,17 +1,39 @@
 
+import val
+
+
 class EarlyStopper:
-    def __init__(self, patience=1, min_delta=0):
+    def __init__(self, patience=8, min_delta=0.001, warmup_epochs=10):
         self.patience = patience
         self.min_delta = min_delta
+        self.warmup_epochs = warmup_epochs
+
         self.counter = 0
-        self.min_validation_loss = float('inf')
+        self.best_loss = float('inf')
+        self.epoch = 0
 
     def early_stop(self, validation_loss):
-        if validation_loss < self.min_validation_loss:
-            self.min_validation_loss = validation_loss
+        self.epoch += 1
+
+        if self.epoch <= self.warmup_epochs:
+            if validation_loss < self.best_loss:
+                self.best_loss = validation_loss
+            return False
+
+        if validation_loss < self.best_loss - self.min_delta:
+            self.best_loss = validation_loss
             self.counter = 0
-        elif validation_loss > (self.min_validation_loss + self.min_delta):
+        else:
             self.counter += 1
-            if self.counter >= self.patience:
-                return True
-        return False
+
+        stop = self.counter >= self.patience
+
+        if stop:
+            print(
+                f"Epoch {self.epoch}: "
+                f"val={validation_loss:.5f}, "
+                f"best={self.best_loss:.5f}, "
+                f"patience={self.counter}/{self.patience}"
+            )
+
+        return stop

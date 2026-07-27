@@ -1,6 +1,8 @@
 import os
 import sys
 
+from torch import optim
+
 # Drop the cluster's default library injection tracking completely
 os.environ.pop("LD_LIBRARY_PATH", None)
 
@@ -38,6 +40,15 @@ if __name__ == "__main__":
     unknown_class = 100
     learning_rate = 0.0001
 
+    criterion = torch.nn.CrossEntropyLoss(
+        ignore_index=unknown_class
+    )
+
+    optimizer = torch.optim.Adam(
+        model.parameters(),
+        lr=learning_rate
+    )
+
     train_dataset = np.load(r"../WSTATT_DATA/DISTRIBUTION/T11SKA/train_set_T11SKA_DISTRI1.npy").tolist()
     val_dataset = np.load(r"../WSTATT_DATA/DISTRIBUTION/T11SKA/validation_set_T11SKA_DISTRI1.npy").tolist()
 
@@ -53,9 +64,12 @@ if __name__ == "__main__":
     train_loss = []
     val_loss = []
 
+    best_val_loss = float("inf")
+
     # --- Early Stopping Variables ---
-    patience = 3
-    min_delta = 0.05
+    patience = 8
+    min_delta = 0.001
+    warmup_epochs = 10
     
     print("########## BUILDING MODELS ##########")
     # Get which model the user chooses
@@ -106,30 +120,32 @@ if __name__ == "__main__":
     else:
         print(f"{model} COMPLETE")
 
-    early_stopper = EarlyStopper(patience, min_delta)
+    early_stopper = EarlyStopper(
+        patience=patience, 
+        min_delta=min_delta, 
+        warmup_epochs=warmup_epochs)
     print(f"Early Stopper Created with PATIENCE: {patience} and MAX EPOCHS: {max_epochs}")
 
     for epoch in np.arange(max_epochs):
         epoch_train_loss = train_epoch(
             epoch=epoch,
             model=model,
-            unknown_class=unknown_class,
-            learning_rate=learning_rate,
+            optim=optimizer,
+            criterion=criterion,
             dataset=train_dataset,
             batch_size=batch_size,
             timestamps=timestamps,
             bands=bands,
-        )
-        # Saves the model with its current parameters when its epoch_train_loss is less than the previous epoch
-        if(len(train_loss)==0 or epoch_train_loss < train_loss[-1]):
-            torch.save(model.state_dict(), model_file)            
+        )       
+
         train_loss.append(epoch_train_loss)
 
         epoch_val_loss = validate_epoch(
             epoch=epoch,
             model=model,
             unknown_class=unknown_class,
-            learning_rate=learning_rate,
+            optim=optimizer,
+            criterion=criterion,
             val_dataset=val_dataset,
             batch_size=batch_size,
             timestamps=timestamps,
@@ -138,6 +154,11 @@ if __name__ == "__main__":
             labels_list=labels_list,
             bands=bands,
         )
+        
+        # Saves the model with its current parameters when its epoch_val_loss is less than the best_val_loss
+        if epoch_val_loss < best_val_loss:
+            best_val_loss = epoch_val_loss
+            torch.save(model.state_dict(), model_file)
         val_loss.append(epoch_val_loss)
 
         if early_stopper.early_stop(epoch_val_loss):

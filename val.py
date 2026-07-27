@@ -12,7 +12,9 @@ from Models.statt import STATT, WSTATT
 # Initialize metrics storage
 test_loss = []    # Track loss per test run
 
-def validate_epoch(epoch, model, unknown_class, learning_rate, val_dataset, batch_size, timestamps, threshold, class_names, labels_list, bands=[]):
+def validate_epoch(epoch, model, unknown_class, optim, criterion, 
+                   val_dataset, batch_size, timestamps, threshold, 
+                   class_names, labels_list, bands=[]):
     '''
     Validates a specified model for a single epoch 
 
@@ -20,7 +22,8 @@ def validate_epoch(epoch, model, unknown_class, learning_rate, val_dataset, batc
         epoch - the current training epoch the model is on
         model - either STATT or WSTATT
         unknown_class - specifies which crop label to ignore
-        learning_rate - specifies the step size the model takes to correct itself during optimization
+        optim - Adam optimizer to accumulate momentum
+        criterion - Cross Entropy Loss Function
         dataset - pre-compiled training dataset of 34 satellite grids
         batch_size - the number of batches processed at a time from the data loader
         timestamps - specifies the equally-spaced points of the year that we are looking at the satellite images from
@@ -36,10 +39,6 @@ def validate_epoch(epoch, model, unknown_class, learning_rate, val_dataset, batc
     pred_list = []    # Collect all model predictions
 
     start_time = time.time()
-
-    criterion = torch.nn.CrossEntropyLoss(ignore_index=unknown_class)
-
-    optim = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
     model = model.to(device)
 
