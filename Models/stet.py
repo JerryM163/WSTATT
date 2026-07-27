@@ -114,7 +114,7 @@ class STNET(torch.nn.Module):
         conv2 = self.conv2(maxpool1) # Output: (384,128,16,16)
 
         # Flatten spatial dimensions to conserve pixel-wise segmentation
-        conv2_reshaped = conv2.view(batches*timestamps,128,height*width/4)
+        conv2_reshaped = conv2.view(batches*timestamps,128,256)
         conv2_reshaped = conv2_reshaped.permute(2,0,1) # Output: (256,384,128)
 
         # Pass through encoder's 1st Transformer Encoder
@@ -122,7 +122,7 @@ class STNET(torch.nn.Module):
 
         # Reshape transformer's output to show the features once again
         trans2 = trans2.permute(1,2,0)
-        trans2 = trans2.view(batches*timestamps,128,height/2,width/2) # Output: (384,128,16,16)
+        trans2 = trans2.view(batches*timestamps,128,16,16) # Output: (384,128,16,16)
 
         # Halve the spatial resolution (divide features by 2)
         maxpool2 = self.maxpool(trans2) # Output: (384,128,8,8)
@@ -131,7 +131,7 @@ class STNET(torch.nn.Module):
         conv3 = self.conv3(maxpool2) # Output: (384,256,8,8)
 
         # Flatten spatial dimensions to conserve pixel-wise segmentation
-        conv3_reshaped = conv3.view(batches*timestamps,128,height*width/4)
+        conv3_reshaped = conv3.view(batches*timestamps,128,256)
         conv3_reshaped = conv3_reshaped.permute(2,0,1) # Output: (64,384,256)
 
         # Pass through encoder's 1st Transformer Encoder
@@ -139,13 +139,13 @@ class STNET(torch.nn.Module):
 
         # Reshape transformer's output to show the features once again
         trans3 = trans3.permute(1,2,0)
-        trans3 = trans3.view(batches,timestamps,256,height/4,width/4) # Output: (16,24,256,8,8)
+        trans3 = trans3.view(batches,timestamps,256,8,8) # Output: (16,24,256,8,8)
 
         # Average across the time dimension 
         encoder_out = trans3.mean(dim=1) # Output: (16,256,8,8)
 
         # Apply the same temporal reduction to the skip connections
-        conv2 = conv2.view(batches,timestamps,128,height/2,width/2).mean(dim=1) # Output: (16,128,16,16)
+        conv2 = conv2.view(batches,timestamps,128,16,16).mean(dim=1) # Output: (16,128,16,16)
         conv1 = conv1.view(batches,timestamps,64,height,width).mean(dim=1)      # Output: (16,64,32,32)
 
         # --- Decoder Path ---
