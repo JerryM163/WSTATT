@@ -174,6 +174,9 @@ class STNET(torch.nn.Module):
 
         return out
 
+    def __str__(self):
+        return "STNet Model"
+
 
 
         
