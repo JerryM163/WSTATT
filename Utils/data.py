@@ -74,7 +74,7 @@ def create_patches(grid, bands, timestamps):
     image = np.load(os.path.join(sat_data_dir, grid + "_image.npy"))
 
     # Generates 'timestamps' evenly spaced numbers between 0 to 24
-    timesteps = np.linspace(0, 24, timestamps, dtype=int)
+    timesteps = np.linspace(0, 23, timestamps, dtype=int)
 
     # Reassigns image to only the selected timesteps based on 'timestamps' passed in
     image = image[timesteps,:,:,:]
