@@ -158,6 +158,7 @@ if __name__ == "__main__":
         if epoch_val_loss < best_val_loss:
             best_val_loss = epoch_val_loss
             torch.save(model.state_dict(), model_file)
+            print(f"NEW BEST validation loss: {best_val_loss}, MODEL SAVED")
         val_loss.append(epoch_val_loss)
 
         if early_stopper.early_stop(epoch_val_loss):
@@ -165,6 +166,6 @@ if __name__ == "__main__":
             break
         
     torch.save(model.state_dict(), model_file)
-    print("Model SAVED")
+    print("Training Complete, MODEL SAVED")
 
     
