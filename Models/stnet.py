@@ -20,6 +20,7 @@ class STNET(torch.nn.Module):
 
         # --- Shared Operations ---
         self.maxpool = torch.nn.MaxPool2d(2)
+        self.relu = torch.nn.ReLU()
 
         # --- Decoder Path (Upsampling) ---
         # Upsampling Block 2 (from deepest features)
