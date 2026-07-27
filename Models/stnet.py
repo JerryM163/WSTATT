@@ -114,8 +114,8 @@ class STNET(torch.nn.Module):
         conv2 = self.conv2(maxpool1) # Output: (batches*timestamps,128,16,16)
 
         # Flatten spatial dimensions to conserve pixel-wise segmentation
-        conv2_reshaped = conv2.view(batches,128,256)
-        conv2_reshaped = conv2_reshaped.permute(2,0,1) # Output: (256,16,128)
+        conv2_reshaped = conv2.view(batches*timestamps,128,256)
+        conv2_reshaped = conv2_reshaped.permute(2,0,1) # Output: (256,batches*timestamps,128)
 
         # Pass through encoder's 1st Transformer Encoder
         trans2 = self.trans2(conv2_reshaped) # Output: (256,batches*timestamps,128)
@@ -131,8 +131,8 @@ class STNET(torch.nn.Module):
         conv3 = self.conv3(maxpool2) # Output: (batches*timestamps,256,8,8)
 
         # Flatten spatial dimensions to conserve pixel-wise segmentation
-        conv3_reshaped = conv3.view(batches*timestamps,128,256)
-        conv3_reshaped = conv3_reshaped.permute(2,0,1) # Output: (64,batches*timestamps,256)
+        conv3_reshaped = conv3.view(batches*timestamps,64,256)
+        conv3_reshaped = conv3_reshaped.permute(1,0,2) # Output: (64,batches*timestamps,256)
 
         # Pass through encoder's 1st Transformer Encoder
         trans3 = self.trans3(conv3_reshaped) # Output: (64,batches*timestamps,256)
