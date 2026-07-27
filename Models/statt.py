@@ -201,7 +201,7 @@ class STATT(torch.nn.Module):
         return out
 
     def __str__(self):
-        return "Baseline STATT Model"
+        return "STATT Model"
 
 class WSTATT(torch.nn.Module):
     def __init__(self, in_channels, in_channels_w, out_channels):
@@ -369,4 +369,4 @@ class WSTATT(torch.nn.Module):
         return out
 
     def __str__(self):
-        return "Baseline WSTATT Model"
+        return "WSTATT Model"
