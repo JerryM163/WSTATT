@@ -136,9 +136,9 @@ class STNET(torch.nn.Module):
         # Pass through encoder's 1st Transformer Encoder
         trans1 = self.trans1(conv1) # Output: (batches*32*32,timestamps,64)
 
-        trans_1 = trans1.reshape(batches,height,width,timestamps,64)
-        trans_1 = trans_1.permute(0,3,4,1,2)
-        trans_1 = trans_1.reshape(batches*timestamps,64,height,width) # Output: (batches*timestamps,64,32,32)
+        trans1 = trans1.reshape(batches,height,width,timestamps,64)
+        trans1 = trans1.permute(0,3,4,1,2)
+        trans1 = trans1.reshape(batches*timestamps,64,height,width) # Output: (batches*timestamps,64,32,32)
 
         # Halve the spatial resolution (divide features by 2)
         maxpool1 = self.maxpool(trans1) # Output: (batches*timestamps,64,16,16)
@@ -153,9 +153,9 @@ class STNET(torch.nn.Module):
         # Pass through encoder's 1st Transformer Encoder
         trans2 = self.trans2(conv2) # Output: (batches*16*16,timestamps,128)
 
-        trans_2 = trans2.reshape(batches,16,16,timestamps,128)
-        trans_2 = trans_2.permute(0,3,4,1,2)
-        trans_2 = trans_2.reshape(batches*timestamps,128,16,16) # Output: (batches*timestamps,128,16,16)
+        trans2 = trans2.reshape(batches,16,16,timestamps,128)
+        trans2 = trans2.permute(0,3,4,1,2)
+        trans2 = trans2.reshape(batches*timestamps,128,16,16) # Output: (batches*timestamps,128,16,16)
 
         # Halve the spatial resolution (divide features by 2)
         maxpool2 = self.maxpool(trans2) # Output: (batches*timestamps,128,8,8)

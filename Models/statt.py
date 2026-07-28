@@ -101,9 +101,7 @@ class STATT(torch.nn.Module):
         # Block 1: Two conv layers + ReLU
         conv1 = self.relu(self.conv1_1(x_s))
         conv1 = self.relu(self.conv1_2(conv1))  # Output: 64 channels
-        print(conv1.shape)
         maxpool1 = self.maxpool(conv1)          # Downsample 2x
-        print(maxpool1.shape)
 
         # Block 2: Two conv layers + ReLU
         conv2 = self.relu(self.conv2_1(maxpool1))
