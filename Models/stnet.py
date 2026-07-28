@@ -10,7 +10,7 @@ class TemporalAttentionPooling(torch.nn.Module):
         self.nheads = nheads     
 
         # Adapt previous context to feature dimensions
-        self.context_proj = torch.nn.Linear(channels//2, channels)
+        self.context_proj = torch.nn.Linear(context_dim, channels)
 
         # Calculates score of channels per each head
         self.scores = torch.nn.Linear(channels, nheads)
