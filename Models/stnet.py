@@ -1,6 +1,25 @@
 import torch
 from torch.nn.modules import TransformerEncoderLayer
 
+class TemporalAttentionPooling(torch.nn.Module):
+    def __init__(self, channels):
+        super(TemporalAttentionPooling, self).__init__()
+
+        self.att_scores = torch.nn.Sequential(
+            torch.nn.Linear(channels,channels//2),
+            torch.nn.ReLU(),
+            torch.nn.Linear(channels//2,1)
+        )
+
+    def forward(self, x):
+        scores = self.att_scores(x)
+
+        attention = torch.softmax(scores, dim=1)
+
+        pooled = torch.sum(attention * x, dim=1)
+
+        return pooled, attention
+
 class STNET(torch.nn.Module):
     def __init__(self, in_channels, out_channels):
         super(STNET, self).__init__()
@@ -30,9 +49,9 @@ class STNET(torch.nn.Module):
         self.upconv1_2 = torch.nn.Conv2d(64, 64, 3, padding=1)         # Output: 64 channels
 
         # --- Temporal Pooling ---
-        self.temp_pool1 = self.getTempPooling(64)
-        self.temp_pool2 = self.getTempPooling(128)
-        self.temp_pool3 = self.getTempPooling(256)
+        self.temp_pool3 = TemporalAttentionPooling(256)
+        self.temp_pool2 = TemporalAttentionPooling(128)
+        self.temp_pool1 = TemporalAttentionPooling(64)
 
         # --- Shared Operations ---
         self.maxpool = torch.nn.MaxPool2d(2)
@@ -73,19 +92,6 @@ class STNET(torch.nn.Module):
             num_layers=1,
             enable_nested_tensor=False,
         )
-    
-    def getTempPooling(self, channels):
-        """
-        Creates a temporal pooling layer
-
-        Returns:
-            A set of linear layers that pools all temporal layers together
-        """
-        return torch.nn.Sequential(
-            torch.nn.Linear(channels,channels//2),
-            torch.nn.ReLU(),
-            torch.nn.Linear(channels//2,1)
-        )
 
     def crop_and_concat(self, x1, x2):
         """
@@ -123,16 +129,16 @@ class STNET(torch.nn.Module):
         # Pass through encoder's 1st convolutional layer
         conv1 = self.conv1(x) # Output: (batches*timestamps,64,32,32)
 
-        conv1_reshaped = conv1.view(batches,timestamps,64,height,width)
-        conv1_reshaped = conv1_reshaped.permute(0,3,4,1,2)
-        conv1_reshaped = conv1_reshaped.view(batches*height*width,timestamps,64) # Output: (batches*32*32,timestamps,64)
+        conv1 = conv1.reshape(batches,timestamps,64,height,width)
+        conv1 = conv1.permute(0,3,4,1,2)
+        conv1 = conv1.reshape(batches*height*width,timestamps,64) # Output: (batches*32*32,timestamps,64)
 
         # Pass through encoder's 1st Transformer Encoder
-        trans1 = self.trans1(conv1_reshaped) # Output: (batches*32*32,timestamps,64)
+        trans1 = self.trans1(conv1) # Output: (batches*32*32,timestamps,64)
 
-        trans1_reshaped = trans1.view(batches,height,width,timestamps,64)
+        trans1_reshaped = trans1.reshape(batches,height,width,timestamps,64)
         trans1_reshaped = trans1_reshaped.permute(0,3,4,1,2)
-        trans1_reshaped = trans1_reshaped.view(batches*timestamps,64,height,width) # Output: (batches*timestamps,64,32,32)
+        trans1_reshaped = trans1_reshaped.reshape(batches*timestamps,64,height,width) # Output: (batches*timestamps,64,32,32)
 
         # Halve the spatial resolution (divide features by 2)
         maxpool1 = self.maxpool(trans1) # Output: (batches*timestamps,64,16,16)
@@ -140,16 +146,16 @@ class STNET(torch.nn.Module):
         # Pass through encoder's 2nd convolutional year
         conv2 = self.conv2(maxpool1) # Output: (batches*timestamps,128,16,16)
 
-        conv2_reshaped = conv2.view(batches,timestamps,128,16,16)
-        conv2_reshaped = conv2_reshaped.permute(0,3,4,1,2)
-        conv2_reshaped = conv2_reshaped.view(batches*height*width,timestamps,128) # Output: (batches*16*16,timestamps,128)
+        conv2 = conv2.reshape(batches,timestamps,128,16,16)
+        conv2 = conv2.permute(0,3,4,1,2)
+        conv2 = conv2.reshape(batches*height*width,timestamps,128) # Output: (batches*16*16,timestamps,128)
 
         # Pass through encoder's 1st Transformer Encoder
-        trans2 = self.trans2(conv2_reshaped) # Output: (batches*16*16,timestamps,128)
+        trans2 = self.trans2(conv2) # Output: (batches*16*16,timestamps,128)
 
-        trans2_reshaped = trans2.view(batches,16,16,timestamps,128)
+        trans2_reshaped = trans2.reshape(batches,16,16,timestamps,128)
         trans2_reshaped = trans2_reshaped.permute(0,3,4,1,2)
-        trans2_reshaped = trans2_reshaped.view(batches*timestamps,128,16,16) # Output: (batches*timestamps,128,16,16)
+        trans2_reshaped = trans2_reshaped.reshape(batches*timestamps,128,16,16) # Output: (batches*timestamps,128,16,16)
 
         # Halve the spatial resolution (divide features by 2)
         maxpool2 = self.maxpool(trans2) # Output: (batches*timestamps,128,8,8)
@@ -157,49 +163,52 @@ class STNET(torch.nn.Module):
         # Pass through encoder's 3rd convolutional year
         conv3 = self.conv3(maxpool2) # Output: (batches*timestamps,256,8,8)
 
-        conv3_reshaped = conv3.view(batches,timestamps,256,8,8)
+        conv3_reshaped = conv3.reshape(batches,timestamps,256,8,8)
         conv3_reshaped = conv3_reshaped.permute(0,3,4,1,2)
-        conv3_reshaped = conv3_reshaped.view(batches*8*8,timestamps,256) # Output: (batches*8*8,timestamps,256)
+        conv3_reshaped = conv3_reshaped.reshape(batches*8*8,timestamps,256) # Output: (batches*8*8,timestamps,256)
 
         # Pass through encoder's 1st Transformer Encoder
         trans3 = self.trans3(conv3_reshaped) # Output: (batches*8*8,timestamps,256)
 
-        trans3_reshaped = trans3.view(batches,8,8,timestamps,256)
-        trans3_reshaped = trans3_reshaped.permute(0,3,4,1,2)
-        trans3_reshaped = trans3_reshaped.view(batches*timestamps,256,8,8) # Output: (batches*timestamps,256,8,8)
-
-        # TODO: How to go past 3rd transformer
-        # Average across the time dimension 
-        encoder_out = trans3.mean(dim=1) # Output: (batches*timestamps,256,8,8)
+        # Temporal pooling on the output of the encoder path
+        encoder_out, alpha3 = self.temp_pool3(trans3)
+        encoder_out = encoder_out.reshape(batches,8,8,256)
+        encoder_out = encoder_out.permute(0,3,1,2) # Output: (batches,256,8,8)
 
         # Apply the same temporal reduction to the skip connections
-        conv2 = conv2.view(batches,timestamps,128,16,16).mean(dim=1) # Output: (16,128,16,16)
-        conv1 = conv1.view(batches,timestamps,64,height,width).mean(dim=1)      # Output: (16,64,32,32)
+        conv2, alpha2 = self.temp_pool2(conv2)
+        conv2 = conv2.reshape(batches,16,16,128)
+        conv2 = conv2.permute(0,3,1,2) # Output: (batches,128,16,16)
+
+        conv1, alpha1 = self.temp_pool1(conv1)
+        conv1 = conv1.reshape(batches,32,32,64)
+        conv2 = conv2.permute(0,3,1,2) # Output: (batches,64,32,32)
 
         # --- Decoder Path ---
         # Upsample features (from 1/4 to 1/2 resolution)
-        unpool2 = self.unpool2(encoder_out) # Output: (16,128,16,16)
+        unpool2 = self.unpool2(encoder_out) # Output: (batches,128,16,16)
 
         # Combine with upsampled context (skip connection)
-        concat2 = self.crop_and_concat(conv2, unpool2)  # Output: (16,256,16,16)
+        concat2 = self.crop_and_concat(conv2, unpool2)  # Output: (batches,256,16,16)
 
         # Process combined features
         upconv2 = self.relu(self.upconv2_1(concat2))
-        upconv2 = self.relu(self.upconv2_2(upconv2))  # Output: (16,128,16,16)
+        upconv2 = self.relu(self.upconv2_2(upconv2))  # Output: (batches,128,16,16)
 
         # Final upsampling (from 1/2 to full resolution)
-        unpool1 = self.unpool1(upconv2)  # Output: (16,64,32,32)
+        unpool1 = self.unpool1(upconv2)  # Output: (batches,64,32,32)
 
         # Combine with upsampled features (skip connection)
-        concat1 = self.crop_and_concat(conv1, unpool1)  # Output: (16,128,32,32)
+        concat1 = self.crop_and_concat(conv1, unpool1)  # Output: (batches,128,32,32)
 
         # Final convolution processing
         upconv1 = self.relu(self.upconv1_1(concat1))
-        upconv1 = self.relu(self.upconv1_2(upconv1))  # Output: (16,64,32,32)
+        upconv1 = self.relu(self.upconv1_2(upconv1))  # Output: (batches,64,32,32)
 
         # --- Output layer (class prediction per pixel) ---
-        out = self.out(upconv1)  # Output: (16,33,32,32)
+        out = self.out(upconv1)  # Output: (batches,33,32,32)
 
+        # Return output from classifier layer
         return out
 
     def __str__(self):
