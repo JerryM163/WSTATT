@@ -182,7 +182,7 @@ class STNET(torch.nn.Module):
 
         conv1, alpha1 = self.temp_pool1(conv1)
         conv1 = conv1.reshape(batches,32,32,64)
-        conv2 = conv2.permute(0,3,1,2) # Output: (batches,64,32,32)
+        conv1 = conv1.permute(0,3,1,2) # Output: (batches,64,32,32)
 
         # --- Decoder Path ---
         # Upsample features (from 1/4 to 1/2 resolution)
