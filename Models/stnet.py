@@ -32,19 +32,19 @@ class TemporalAttentionPooling(torch.nn.Module):
         )
 
     def forward(self, x, context):
-        # Apply previous context to scores when relevant
-        if context is not None:
-            print(x.shape)
-            print(context.shape)
-            x += self.context_proj(context).unsqueeze(1)
-
         # Compute scores
         scores = self.scores(x)
         scores = scores.permute(0,2,1)
 
+        print(scores.shape)
+
+        # Apply previous context to scores when relevant
+        if context is not None:
+            print(context.shape)
+            x += self.context_proj(context).unsqueeze(1)
+
         # Compute attention from scores
         attention = torch.softmax(scores, dim=1)
-
         
         # Get an attention score for each head
         outputs = []
