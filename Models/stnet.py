@@ -139,11 +139,9 @@ class STNET(torch.nn.Module):
         trans_1 = trans1.reshape(batches,height,width,timestamps,64)
         trans_1 = trans_1.permute(0,3,4,1,2)
         trans_1 = trans_1.reshape(batches*timestamps,64,height,width) # Output: (batches*timestamps,64,32,32)
-        print(trans_1.shape)
 
         # Halve the spatial resolution (divide features by 2)
         maxpool1 = self.maxpool(trans1) # Output: (batches*timestamps,64,16,16)
-        print(maxpool1.shape)
 
         # Pass through encoder's 2nd convolutional year
         conv2 = self.conv2(maxpool1) # Output: (batches*timestamps,128,16,16)
