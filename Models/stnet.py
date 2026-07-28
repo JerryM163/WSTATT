@@ -1,51 +1,77 @@
+from multiprocessing import context
+
 import torch
-from torch.nn.modules import TransformerEncoderLayer
 
 class TemporalAttentionPooling(torch.nn.Module):
-    """Pools all temporal channels of an input vector, applies previous context, and computes attention scores"""
-    def __init__(self, channels):
+    def __init__(self, channels, context_dim, nheads):
         super(TemporalAttentionPooling, self).__init__()
 
-        # --- Attention Mechanism ---
-        self.scores = torch.nn.Sequential(
-            torch.nn.Linear(channels,channels//2), # Halves channels
-            torch.nn.ReLU(),
-            torch.nn.Linear(channels//2,1)         # Further decreases channels to 1
+        self.channels = channels       # Feature dimensions of input vector
+        self.nheads = nheads     
+
+        # Adapt previous context to feature dimensions
+        self.context_proj = torch.nn.Linear(channels//2, channels)
+
+        # Calculates score of channels per each head
+        self.scores = torch.nn.Linear(channels, nheads)
+
+        # Combines scores from each head
+        self.head_fusion = torch.nn.Linear(channels*nheads,channels)
+
+        # Takes in pooled attention score to get new context
+        self.update_context = torch.nn.Sequential(
+            torch.nn.Linear(
+                channels,
+                context_dim,
+            ),
+            torch.nn.GELU(),
+            torch.nn.Linear(
+                context_dim,
+                context_dim,
+            )
         )
 
-        # --- Projector for Past Contexts ---
-        self.context_proj = torch.nn.Linear(channels,1) # Changes context dim to 1
-
     def forward(self, x, context):
-        """
-        Pools temporal channels of input vector and computes attention weights
-
-        Args:
-            x - input vector
-            context - other input vector from previous temporal attention pooling layer
-        Returns:
-            pooled - output vector with 1 timestamps channel
-            attention - output vector of computed attention weights
-            out_context - output vector used to apply current pooled to next temporal attention pooling layer
-        """
-        scores = self.scores(x)
-
         # Apply previous context to scores when relevant
         if context is not None:
-            print("Scores:", scores.shape)
-            print("Context:", context.shape)
-            scores += self.context_proj(context).unsqueeze(1)
+
+            x += self.context_proj(context).unsqueeze(1)
+
+        # Compute scores
+        scores = self.scores(x)
+        scores = scores.permute(0,2,1)
 
         # Compute attention from scores
         attention = torch.softmax(scores, dim=1)
 
-        # Get pooled layer with attention
-        pooled = torch.sum(attention * x, dim=1)
+        
+        # Get an attention score for each head
+        outputs = []
+        for h in range(self.nheads):
+            alpha = attention[:,h].unsqueeze(-1)
 
-        # Also set the context to return from this module
-        out_context = pooled
+            pooled = torch.sum(
+                alpha*x,
+                dim=1,
+            )
+
+            outputs.append(pooled)
+
+        # Fuse each head's computed attention score
+        pooled = torch.cat(
+            outputs,
+            dim=-1,
+        )
+        pooled = self.head_fusion(pooled)
+
+        # Accumulates temporal memory throughout the encoder path
+        out_context = self.update_context(pooled)
+        if context is not None:
+            out_context += context
 
         return pooled, attention, out_context
+
+
 
 class STNET(torch.nn.Module):
     """
@@ -108,9 +134,9 @@ class STNET(torch.nn.Module):
         self.upconv1_2 = torch.nn.Conv2d(64, 64, 3, padding=1)         # Output: 64 channels
 
         # --- Temporal Pooling ---
-        self.temp_pool1 = TemporalAttentionPooling(64)
-        self.temp_pool2 = TemporalAttentionPooling(128)
-        self.temp_pool3 = TemporalAttentionPooling(256)
+        self.temp_pool1 = TemporalAttentionPooling(64, 64, nheads=2)
+        self.temp_pool2 = TemporalAttentionPooling(128, 64, nheads=4)
+        self.temp_pool3 = TemporalAttentionPooling(256, 64, nheads=8)
 
         # --- Shared Operations ---
         self.maxpool = torch.nn.MaxPool2d(2)
