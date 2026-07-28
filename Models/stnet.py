@@ -34,8 +34,6 @@ class TemporalAttentionPooling(torch.nn.Module):
     def forward(self, x, context):
         # Apply previous context to scores when relevant
         if context is not None:
-            print(x.shape)
-            print(context.shape)
             x += self.context_proj(context).unsqueeze(1)
 
         # Compute scores
@@ -226,6 +224,8 @@ class STNET(torch.nn.Module):
 
         # Temporal pooling on the 1st transformer's output
         pooled1, alpha1, context1 = self.temp_pool1(trans1, None) # Output: (batches*32*32,64)
+        print(pooled1.shape)
+        print(context1.shape)
 
         # Reshape transformer's output for maxpooling
         trans1 = trans1.reshape(batches,height,width,timestamps,64)
