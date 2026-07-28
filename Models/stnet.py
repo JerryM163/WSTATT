@@ -18,10 +18,6 @@ class STNET(torch.nn.Module):
         self.conv3 = self.getConvBlock(128, 256)        # Output: 256 channels
         self.trans3 = self.getTransEncoder(256)         # Input received from 3rd maxpool
 
-        # --- Shared Operations ---
-        self.maxpool = torch.nn.MaxPool2d(2)
-        self.relu = torch.nn.ReLU()
-
         # --- Decoder Path (Upsampling) ---
         # Upsampling Block 2 (from deepest features)
         self.unpool2 = torch.nn.ConvTranspose2d(256, 128, kernel_size=2, stride=2)  # 2x upsampling
@@ -33,11 +29,21 @@ class STNET(torch.nn.Module):
         self.upconv1_1 = torch.nn.Conv2d(128, 64, 3, padding=1)        # After skip connection
         self.upconv1_2 = torch.nn.Conv2d(64, 64, 3, padding=1)         # Output: 64 channels
 
+        # --- Temporal Pooling ---
+        self.temp_pool1 = self.getTempPooling(64)
+        self.temp_pool2 = self.getTempPooling(128)
+        self.temp_pool3 = self.getTempPooling(256)
+
+        # --- Shared Operations ---
+        self.maxpool = torch.nn.MaxPool2d(2)
+        self.relu = torch.nn.ReLU()
+
         # --- Output layer (classifier) ---
         self.out = torch.nn.Conv2d(64, out_channels, kernel_size=1, padding=0)  # 1x1 conv
     
     def getConvBlock(self, in_channels, out_channels):
-        """Blueprint for similar Convolutional Layers 
+        """
+        Blueprint for similar Convolutional Layers 
 
         Returns:
             A CNN encoder layer that halves spatial resolution 
@@ -51,7 +57,8 @@ class STNET(torch.nn.Module):
         )
 
     def getTransEncoder(self, d_model):
-        """Blueprint for similar Transformer encoders
+        """
+        Blueprint for similar Transformer encoders
 
         Returns:
             A Transformer encoder that picks up on temporal relationships
@@ -66,9 +73,23 @@ class STNET(torch.nn.Module):
             num_layers=1,
             enable_nested_tensor=False,
         )
+    
+    def getTempPooling(self, channels):
+        """
+        Creates a temporal pooling layer
+
+        Returns:
+            A set of linear layers that pools all temporal layers together
+        """
+        return torch.nn.Sequential(
+            torch.nn.Linear(channels,channels//2),
+            torch.nn.ReLU(),
+            torch.nn.Linear(channels//2,1)
+        )
 
     def crop_and_concat(self, x1, x2):
-        """Aligns and concatenates encoder features (x1) with decoder features (x2).
+        """
+        Aligns and concatenates encoder features (x1) with decoder features (x2).
 
         Used for skip connections. Center-crops x1 to match x2's spatial dimensions.
         """
@@ -83,7 +104,8 @@ class STNET(torch.nn.Module):
         return torch.cat([x1_crop, x2], dim=1)
 
     def forward(self, x):
-        """Forward pass for sequence of satellite images.
+        """
+        Forward pass for sequence of satellite images.
 
         Args:
             x_s: Input sequence tensor [batch, seq_len, channels, height, width]
@@ -175,7 +197,7 @@ class STNET(torch.nn.Module):
         upconv1 = self.relu(self.upconv1_1(concat1))
         upconv1 = self.relu(self.upconv1_2(upconv1))  # Output: (16,64,32,32)
 
-        # Output layer (class prediction per pixel)
+        # --- Output layer (class prediction per pixel) ---
         out = self.out(upconv1)  # Output: (16,33,32,32)
 
         return out
@@ -183,7 +205,12 @@ class STNET(torch.nn.Module):
     def __str__(self):
         return "STNet Model"
 
+class WSTNET(torch.nn.Module):
+    def __init__(self, in_channels, in_channels_w, out_channels):
+        super(WSTNET, self).__init__()
 
+    def __str__(self):
+        return "WSTNet Model"
 
         
 
