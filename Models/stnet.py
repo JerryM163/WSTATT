@@ -32,6 +32,8 @@ class TemporalAttentionPooling(torch.nn.Module):
 
         # Apply previous context to scores when relevant
         if context is not None:
+            print("Scores:", scores.shape)
+            print("Context:", context.shape)
             scores += self.context_proj(context).unsqueeze(1)
 
         # Compute attention from scores
