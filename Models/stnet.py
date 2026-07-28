@@ -148,7 +148,7 @@ class STNET(torch.nn.Module):
 
         conv2 = conv2.reshape(batches,timestamps,128,16,16)
         conv2 = conv2.permute(0,3,4,1,2)
-        conv2 = conv2.reshape(batches*height*width,timestamps,128) # Output: (batches*16*16,timestamps,128)
+        conv2 = conv2.reshape(batches*16*16,timestamps,128) # Output: (batches*16*16,timestamps,128)
 
         # Pass through encoder's 1st Transformer Encoder
         trans2 = self.trans2(conv2) # Output: (batches*16*16,timestamps,128)
