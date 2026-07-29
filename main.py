@@ -21,6 +21,69 @@ from Utils.early_stopper import EarlyStopper
 from train import train_epoch
 from val import validate_epoch
 
+def train_model():
+    # --- Initialize For Use During Training/Validation Loop ---
+    criterion = torch.nn.CrossEntropyLoss(
+        ignore_index=unknown_class
+    )
+    optimizer = torch.optim.Adam(
+        model.parameters(),
+        lr=learning_rate
+    )
+    early_stopper = EarlyStopper(
+        patience=patience, 
+        min_delta=min_delta, 
+        warmup_epochs=warmup_epochs)
+    print(f"Early Stopper Created with PATIENCE: {patience} and MAX EPOCHS: {max_epochs}")
+
+    torch.autograd.set_detect_anomaly(True, check_nan=False)
+
+    for epoch in np.arange(max_epochs):
+        epoch_train_loss = train_epoch(
+            epoch=epoch,
+            model=model,
+            optim=optimizer,
+            criterion=criterion,
+            dataset=train_dataset,
+            batch_size=batch_size,
+            timestamps=timestamps,
+            bands=bands,
+        )       
+
+        train_loss.append(epoch_train_loss)
+
+        epoch_val_loss = validate_epoch(
+            epoch=epoch,
+            model=model,
+            unknown_class=unknown_class,
+            optim=optimizer,
+            criterion=criterion,
+            val_dataset=val_dataset,
+            batch_size=batch_size,
+            timestamps=timestamps,
+            threshold=threshold,
+            class_names=class_names,
+            labels_list=labels_list,
+            bands=bands,
+        )
+        
+        # Saves the model with its current parameters when its epoch_val_loss is less than the best_val_loss
+        if epoch_val_loss < best_val_loss:
+            best_val_loss = epoch_val_loss
+            torch.save(model.state_dict(), model_file)
+            print(f"NEW BEST validation loss: {best_val_loss:.4f}, MODEL SAVED")
+        val_loss.append(epoch_val_loss)
+
+        if early_stopper.early_stop(epoch_val_loss):
+            print(f"Early Stopping Activated at EPOCH {epoch+1}")
+            break
+        
+    torch.save(model.state_dict(), model_file)
+    print("Training Complete, MODEL SAVED")
+
+def test_model():
+
+
 if __name__ == "__main__":
     # --- Model Variables ---
     model_choice = None # Chosen by the user 
@@ -119,63 +182,15 @@ if __name__ == "__main__":
     else:
         print(f"{model} COMPLETE")
 
-    # --- Initialize For Use During Training/Validation Loop ---
-    criterion = torch.nn.CrossEntropyLoss(
-        ignore_index=unknown_class
-    )
-    optimizer = torch.optim.Adam(
-        model.parameters(),
-        lr=learning_rate
-    )
-    early_stopper = EarlyStopper(
-        patience=patience, 
-        min_delta=min_delta, 
-        warmup_epochs=warmup_epochs)
-    print(f"Early Stopper Created with PATIENCE: {patience} and MAX EPOCHS: {max_epochs}")
+    loop = int(input("Are you training or testing (0 or 1)?: "))
 
-    torch.autograd.set_detect_anomaly(True, check_nan=False)
-
-    for epoch in np.arange(max_epochs):
-        epoch_train_loss = train_epoch(
-            epoch=epoch,
-            model=model,
-            optim=optimizer,
-            criterion=criterion,
-            dataset=train_dataset,
-            batch_size=batch_size,
-            timestamps=timestamps,
-            bands=bands,
-        )       
-
-        train_loss.append(epoch_train_loss)
-
-        epoch_val_loss = validate_epoch(
-            epoch=epoch,
-            model=model,
-            unknown_class=unknown_class,
-            optim=optimizer,
-            criterion=criterion,
-            val_dataset=val_dataset,
-            batch_size=batch_size,
-            timestamps=timestamps,
-            threshold=threshold,
-            class_names=class_names,
-            labels_list=labels_list,
-            bands=bands,
-        )
+    match loop:
+        case 0:
+            train_model()
+        case 1:
+            test_model()
+        case _:
+            print("INVALID MODE selected, please enter 0 or 1!")
         
-        # Saves the model with its current parameters when its epoch_val_loss is less than the best_val_loss
-        if epoch_val_loss < best_val_loss:
-            best_val_loss = epoch_val_loss
-            torch.save(model.state_dict(), model_file)
-            print(f"NEW BEST validation loss: {best_val_loss}, MODEL SAVED")
-        val_loss.append(epoch_val_loss)
-
-        if early_stopper.early_stop(epoch_val_loss):
-            print(f"Early Stopping Activated at EPOCH {epoch+1}")
-            break
-        
-    torch.save(model.state_dict(), model_file)
-    print("Training Complete, MODEL SAVED")
 
     

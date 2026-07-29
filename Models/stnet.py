@@ -5,14 +5,14 @@ class TemporalAttentionPooling(torch.nn.Module):
     def __init__(self, channels, context_dim, nheads):
         super(TemporalAttentionPooling, self).__init__()
 
-        self.channels = channels       # Feature dimensions of input vector
-        self.nheads = nheads     
-
-        # Adapt previous context to feature dimensions
-        self.context_proj = torch.nn.Linear(context_dim, channels)
+        self.channels = channels # Feature dimensions of input vector
+        self.nheads = nheads     # Number of heads for gathering attention
 
         # Calculates score of channels per each head
         self.scores = torch.nn.Linear(channels, nheads)
+
+        # Adapt previous context to feature dimensions
+        self.context_proj = torch.nn.Linear(context_dim, channels)
 
         # Combines scores from each head
         self.head_fusion = torch.nn.Linear(channels*nheads,channels)
@@ -32,8 +32,8 @@ class TemporalAttentionPooling(torch.nn.Module):
 
     def forward(self, x, context):
         # Compute scores
-        scores = self.scores(x)
-        scores = scores.permute(0,2,1)
+        scores = self.scores(x) 
+        scores = scores.permute(0,2,1) #Output: (batches*height*width,nheads,timestamps)
 
         # Apply previous context to scores when relevant
         if context is not None:
@@ -181,6 +181,7 @@ class STNET(torch.nn.Module):
 
 
     def downsample_context(self, context, batches, in_size, out_size, context_dim):
+        """Downsamples context vector to consistent spatial dimensions"""
         context = context.reshape(batches,in_size,in_size,context_dim)
         context = context.permute(0,3,1,2)
         context = self.avg_pool(context)
