@@ -90,7 +90,6 @@ def test_model_preds(model, test_dataset, batch_size, timestamps, bands=[]):
     # Display final predictions
     plt.tight_layout(pad = 0.1)
     plt.title(f"PREDICTED Labels")
-    plt.show()
 
     print("########## Fetching Ground-Truth Labels ##########")
 
