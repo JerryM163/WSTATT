@@ -108,7 +108,7 @@ class STNET(torch.nn.Module):
                 ▼                                         │
         Downsample ───────────────────────────────────────┘
     """
-    def __init__(self, in_channels, out_channels, timestamps):
+    def __init__(self, in_channels, out_channels):
         super(STNET, self).__init__()
 
         # --- Encoder Layer ---
@@ -136,9 +136,9 @@ class STNET(torch.nn.Module):
         self.upconv1_2 = torch.nn.Conv2d(64, 64, 3, padding=1)         # Output: 64 channels
 
         # --- Temporal Pooling ---
-        self.temp_pool1 = TemporalAttentionPooling(timestamps, 64, nheads=2)
-        self.temp_pool2 = TemporalAttentionPooling(timestamps, 64, nheads=4)
-        self.temp_pool3 = TemporalAttentionPooling(timestamps, 64, nheads=8)
+        self.temp_pool1 = TemporalAttentionPooling(64, 64, nheads=2)
+        self.temp_pool2 = TemporalAttentionPooling(128, 64, nheads=4)
+        self.temp_pool3 = TemporalAttentionPooling(256, 64, nheads=8)
 
         # --- Shared Operations ---
         self.maxpool = torch.nn.MaxPool2d(2)
