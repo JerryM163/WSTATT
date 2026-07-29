@@ -188,7 +188,7 @@ class STNET(torch.nn.Module):
     def downsample_context(self, context, batches, in_size, out_size, context_dim):
         context = context.reshape(batches,in_size,in_size,context_dim)
         context = context.permute(0,3,1,2)
-        context = self.avg_pool(context, 2)
+        context = self.avg_pool(context)
         context = context.permute(0,2,3,1)
 
         return context.reshape(batches*out_size*out_size,context_dim)
