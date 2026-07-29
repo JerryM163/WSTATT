@@ -73,18 +73,14 @@ def create_patches(grid, bands, timestamps):
     # Load satellite image data (4D array: [timesteps, channels, height, width])
     image = np.load(os.path.join(sat_data_dir, grid + "_image.npy"))
 
-    timesteps = []
-    step = 24 // timestamps
+    # Generates 'timestamps' evenly spaced numbers between 0 to 24
+    timesteps = np.linspace(0, 23, timestamps, dtype=int)
 
-    # Populates timesteps with 'timestamps' number of evenly-spaced indexes 
-    for idx in range(0,24,step):
-        timesteps.append(idx)
-
-    # Reassigns image to only the selected timesteps based on 'timestamps' passed on
+    # Reassigns image to only the selected timesteps based on 'timestamps' passed in
     image = image[timesteps,:,:,:]
 
     # Load label data (2D array: [height, width] - ground truth for each pixel)
-    label = np.load(os.path.join(combined_label_data_dir, grid + "_combined_label.npy"))
+    label = np.load(os.path.join(eroded_label_data_dir, grid + "_label.npy"))
 
     # Load weather data (3D array: [timesteps, weather_features])
     weather = np.load(os.path.join(weather_data_dir, grid + '_daymet_10980_global_normalised_year_day_average_grid_array.npy'))
