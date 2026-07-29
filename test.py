@@ -16,7 +16,7 @@ class_color_list = ['#ffd300','#ff2626','#00a8e2','#ffff00','#e2007c','#a57000',
                 '#e8bfff','#c6d69e','#e8ffbf','#7cafaf','#7cafaf','#4970a3','#9a9a9a',"#9773cd"] ## add unknown to end and subtract one from vamx in imshow()
 colormap = mpl.colors.ListedColormap(class_color_list)
 
-def test_model(model, test_dataset, batch_size, timestamps, bands=[]):
+def test_model_preds(model, test_dataset, batch_size, timestamps, bands=[]):
     print("########## Testing Model ##########")
 
     start_time = time.time()

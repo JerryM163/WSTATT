@@ -20,7 +20,7 @@ from Models.stnet import STNET
 from Utils.early_stopper import EarlyStopper
 from train import train_epoch
 from val import validate_epoch
-from test import test_model
+from test import test_model_preds
 
 def train_model():
     # --- Initialize For Use During Training/Validation Loop ---
@@ -83,7 +83,7 @@ def train_model():
     print("Training Complete, MODEL SAVED")
 
 def test_model():
-    test_model(
+    test_model_preds(
         model=model,
         test_dataset=test_dataset,
         batch_size=batch_size,
