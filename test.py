@@ -67,7 +67,7 @@ def test_model_preds(model, test_dataset, batch_size, timestamps, bands=[]):
         # Plot predicted label
         plt.subplot(rows, cols, grid_num + 1)
         plt.axis('off')
-        plt.imshow(grid_out, cmap=colormap, interpolation='none', vmin=0, vmax=len(class_color_list)-1)
+        plt.imshow(grid_out.cpu(), cmap=colormap, interpolation='none', vmin=0, vmax=len(class_color_list)-1)
 
     # Display final predictions
     plt.tight_layout(pad = 0.1)
