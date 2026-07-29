@@ -31,8 +31,6 @@ class TemporalAttentionPooling(torch.nn.Module):
             )
         )
 
-        self.avg_pool = torch.nn.AvgPool2d(2)
-
     def forward(self, x, context):
         # Compute scores
         scores = self.scores(x)
@@ -141,6 +139,8 @@ class STNET(torch.nn.Module):
         self.temp_pool1 = TemporalAttentionPooling(64, 64, nheads=2)
         self.temp_pool2 = TemporalAttentionPooling(128, 64, nheads=4)
         self.temp_pool3 = TemporalAttentionPooling(256, 64, nheads=8)
+
+        self.avg_pool = torch.nn.AvgPool2d(2)
 
         # --- Shared Operations ---
         self.maxpool = torch.nn.MaxPool2d(2)
