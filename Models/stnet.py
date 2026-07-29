@@ -239,7 +239,7 @@ class STNET(torch.nn.Module):
         # Temporal pooling on the 1st transformer's output
         pooled1, alpha1, context1 = self.temp_pool1(trans1, None) # Output: (batches*32*32,64)
 
-        context1 = self.downsample_context(context1,batches,32,16,context_dim=64)
+        sampled_context1 = self.downsample_context(context1,batches,32,16,context_dim=64)
 
         # Reshape transformer's output for maxpooling
         trans1 = trans1.reshape(batches,height,width,timestamps,64)
@@ -260,9 +260,9 @@ class STNET(torch.nn.Module):
         trans2 = self.trans2(conv2) # Output: (batches*16*16,timestamps,128)
 
         # Temporal pooling on the 2nd transformer's output
-        pooled2, alpha2, context2 = self.temp_pool2(trans2, context1) # Output: (batches*16*16,128)
+        pooled2, alpha2, context2 = self.temp_pool2(trans2, sampled_context1) # Output: (batches*16*16,128)
 
-        context2 = self.downsample_context(context2,batches,16,8,context_dim=64)
+        sampled_context2 = self.downsample_context(context2,batches,16,8,context_dim=64)
 
         trans2 = trans2.reshape(batches,16,16,timestamps,128)
         trans2 = trans2.permute(0,3,4,1,2)
@@ -282,7 +282,7 @@ class STNET(torch.nn.Module):
         trans3 = self.trans3(conv3) # Output: (batches*8*8,timestamps,256)
 
         # Temporal pooling on the 3rd transformer's output
-        pooled3, alpha3, context3 = self.temp_pool3(trans3, context2) # Output: (batches*8*8,256)
+        pooled3, alpha3, context3 = self.temp_pool3(trans3, sampled_context2) # Output: (batches*8*8,256)
 
         # Prepare encoder's output and skip connections for the decoder
         pooled3 = pooled3.reshape(batches,8,8,256)
