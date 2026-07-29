@@ -20,6 +20,7 @@ from Models.stnet import STNET
 from Utils.early_stopper import EarlyStopper
 from train import train_epoch
 from val import validate_epoch
+from test import test_model
 
 def train_model():
     # --- Initialize For Use During Training/Validation Loop ---
@@ -82,7 +83,13 @@ def train_model():
     print("Training Complete, MODEL SAVED")
 
 def test_model():
-
+    test_model(
+        model=model,
+        test_dataset=test_dataset,
+        batch_size=batch_size,
+        timestamps=timestamps,
+        bands=bands,
+    )
 
 if __name__ == "__main__":
     # --- Model Variables ---
@@ -106,6 +113,7 @@ if __name__ == "__main__":
 
     train_dataset = np.load(r"../WSTATT_DATA/DISTRIBUTION/T11SKA/train_set_T11SKA_DISTRI1.npy").tolist()
     val_dataset = np.load(r"../WSTATT_DATA/DISTRIBUTION/T11SKA/validation_set_T11SKA_DISTRI1.npy").tolist()
+    test_dataset = np.load(r"../WSTATT_DATA/DISTRIBUTION/T11SKA/test_set_T11SKA_DISTRI1.npy").tolist()
 
     batch_size = 16
 

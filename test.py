@@ -17,7 +17,7 @@ class_color_list = ['#ffd300','#ff2626','#00a8e2','#ffff00','#e2007c','#a57000',
 colormap = mpl.colors.ListedColormap(class_color_list)
 
 def test_model(model, test_dataset, batch_size, timestamps, bands=[]):
-    print(f"########## Testing Model ##########")
+    print("########## Testing Model ##########")
 
     start_time = time.time()
 
@@ -72,4 +72,18 @@ def test_model(model, test_dataset, batch_size, timestamps, bands=[]):
     # Display final predictions
     plt.tight_layout(pad = 0.1)
     plt.title(f"PREDICTED Labels")
+    plt.show()
+
+    print("########## Fetching Ground-Truth Labels ##########")
+
+    plt.figure(figsize=(24, 2*rows)) # VISUALIZING SATELLITE DATA
+    
+    for grid_num, grid in enumerate(sample_grids):
+        plt.subplot(rows, cols, grid_num + 1)
+        plt.imshow(grid, cmap=colormap, interpolation='none', vmin=0, vmax=len(class_color_list)-1)
+        plt.imshow(grid_out, cmap=colormap, interpolation='none', vmin=0, vmax=len(class_color_list)-1)
+
+    # Display ground-truth labels
+    plt.tight_layout(pad = 0.1)
+    plt.title(f"GROUND TRUTH Labels")
     plt.show()
