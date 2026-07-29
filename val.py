@@ -59,7 +59,7 @@ def validate_epoch(epoch, model, unknown_class, optim, criterion,
         grid_loss = 0  # Accumulate loss for this grid
         # Process all batches in grid
         for batch, [image_patch, weather_patch, label_patch] in enumerate(data_loader):
-            print("\x1b[2K" + f"Testing on {grid}'s batch {batch + 1}", end="\r", flush=True)
+            print("\x1b[2K" + f"Validating with {grid}'s batch {batch + 1}", end="\r", flush=True)
 
             image_tensor = image_patch.to(device)
             weather_tensor = weather_patch.to(device)
@@ -67,10 +67,10 @@ def validate_epoch(epoch, model, unknown_class, optim, criterion,
 
             # Forward pass WITHOUT gradient calculation (saves memory)
             with torch.no_grad():
-                if isinstance(model, STATT):
-                    out = model(image_tensor)
-                else:
+                if isinstance(model, WSTATT):
                     out = model(image_tensor, weather_tensor)
+                else:
+                    out = model(image_tensor)
 
             # Convert model outputs to probabilities using softmax
             # dim=1 applies softmax across classes (channel dimension)

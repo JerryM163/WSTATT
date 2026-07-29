@@ -54,10 +54,10 @@ def train_epoch(epoch, model, optim, criterion, dataset, batch_size, timestamps,
             weather_tensor = weather_patch.to(device)
             label_patch = label_patch.type(torch.long).to(device)
 
-            if isinstance(model, STATT):
-                out = model(image_tensor)
-            else:
+            if isinstance(model, WSTATT):
                 out = model(image_tensor, weather_tensor)
+            else:
+                out = model(image_tensor)
 
             batch_loss = criterion(out, label_patch)
 
