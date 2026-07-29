@@ -58,16 +58,20 @@ def test_model_preds(model, test_dataset, batch_size, timestamps, bands=[]):
                     out = model(image_tensor, weather_tensor)
                 else:
                     out = model(image_tensor)
+            
 
-            preds.append(out.to(device))
+            preds.append(out.to(device)) 
 
         # Gather predictions together to get full image of predicted label
         grid_out = torch.concat(preds, dim=0)
 
+        # Find which class probability is best for each pixel in the prediction
+        grid_out = grid_out.argmax(dim=0).cpu()
+
         # Plot predicted label
         plt.subplot(rows, cols, grid_num + 1)
         plt.axis('off')
-        plt.imshow(grid_out.cpu(), cmap=colormap, interpolation='none', vmin=0, vmax=len(class_color_list)-1)
+        plt.imshow(grid_out, cmap=colormap, interpolation='none', vmin=0, vmax=len(class_color_list)-1)
 
     # Display final predictions
     plt.tight_layout(pad = 0.1)
