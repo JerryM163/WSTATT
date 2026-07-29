@@ -109,6 +109,7 @@ if __name__ == "__main__":
         model = STNET(
             in_channels=in_channels,
             out_channels=out_channels,
+            timestamps=timestamps,
         )
         model_file = f"Stnet-{timestamps}.pt"
 
