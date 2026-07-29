@@ -1,4 +1,3 @@
-from multiprocessing import context
 
 import torch
 
@@ -38,10 +37,10 @@ class TemporalAttentionPooling(torch.nn.Module):
 
         # Apply previous context to scores when relevant
         if context is not None:
-            x += self.context_proj(context).unsqueeze(1)
+            x = x + self.context_proj(context).unsqueeze(1)
 
         # Compute attention from scores
-        attention = torch.softmax(scores, dim=1)
+        attention = torch.softmax(scores, dim=-1)
         
         # Get an attention score for each head
         outputs = []
@@ -65,7 +64,7 @@ class TemporalAttentionPooling(torch.nn.Module):
         # Accumulates temporal memory throughout the encoder path
         out_context = self.update_context(pooled)
         if context is not None:
-            out_context += context
+            out_context = out_context + context
 
         return pooled, attention, out_context
 
