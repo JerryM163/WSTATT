@@ -200,4 +200,11 @@ if __name__ == "__main__":
     plt.savefig(plot_file, dpi=300)
     print(f"Loss plot saved as {plot_file}")
     plt.show()
+
+    #Saving history for each run
+    np.savez(
+        model_file.replace(".pt", "_history.npz"),
+        train_loss=np.array(train_loss),
+        val_loss=np.array(val_loss)
+    )
     
