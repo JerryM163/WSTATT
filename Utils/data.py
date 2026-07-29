@@ -80,7 +80,7 @@ def create_patches(grid, bands, timestamps):
     image = image[timesteps,:,:,:]
 
     # Load label data (2D array: [height, width] - ground truth for each pixel)
-    label = np.load(os.path.join(combined_label_data_dir, grid + "_combined_label.npy"))
+    label = np.load(os.path.join(eroded_label_data_dir, grid + "_label.npy"))
 
     # Load weather data (3D array: [timesteps, weather_features])
     weather = np.load(os.path.join(weather_data_dir, grid + '_daymet_10980_global_normalised_year_day_average_grid_array.npy'))
