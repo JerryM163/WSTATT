@@ -81,7 +81,6 @@ def test_model_preds(model, test_dataset, batch_size, timestamps, bands=[]):
     for grid_num, grid in enumerate(sample_grids):
         plt.subplot(rows, cols, grid_num + 1)
         plt.imshow(grid, cmap=colormap, interpolation='none', vmin=0, vmax=len(class_color_list)-1)
-        plt.imshow(grid_out, cmap=colormap, interpolation='none', vmin=0, vmax=len(class_color_list)-1)
 
     # Display ground-truth labels
     plt.tight_layout(pad = 0.1)
