@@ -107,7 +107,7 @@ def test_model_preds(model, test_dataset, batch_size, timestamps, bands=[]):
 
         plt.subplot(rows, cols, grid_num + 1)
         plt.axis('off')
-        plt.imshow(grid, cmap=colormap, interpolation='none', vmin=0, vmax=len(class_color_list)-1)
+        plt.imshow(label, cmap=colormap, interpolation='none', vmin=0, vmax=len(class_color_list)-1)
 
     # Display ground-truth labels
     plt.tight_layout(pad = 0.1)
