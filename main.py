@@ -133,6 +133,8 @@ if __name__ == "__main__":
         warmup_epochs=warmup_epochs)
     print(f"Early Stopper Created with PATIENCE: {patience} and MAX EPOCHS: {max_epochs}")
 
+    torch.autograd.set_detect_anomaly(True, check_nan=False)
+
     for epoch in np.arange(max_epochs):
         epoch_train_loss = train_epoch(
             epoch=epoch,
