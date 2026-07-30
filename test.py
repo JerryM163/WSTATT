@@ -43,10 +43,7 @@ def test_model_preds(model, test_dataset, batch_size, timestamps, bands=[]):
         grid_time = time.time()
 
         print("\x1b[2K" + f"Getting data loader for grid {grid}...", end="\r", flush=True)
-        data_loader = get_data_loader(grid, batch_size, bands, timestamps)
-
-        # Don't shuffle the data loader so we can reconstruct the patches later
-        data_loader.dataset.shuffle = False
+        data_loader = get_data_loader(grid, batch_size, bands, timestamps, shuffle=False)
 
         # Initialize list to store predictions for the current grid
         preds = []

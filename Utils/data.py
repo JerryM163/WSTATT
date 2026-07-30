@@ -149,7 +149,7 @@ def create_patches(grid, bands, timestamps):
 
     return image_patches, weather_patches, label_patches
 
-def get_data_loader(grid, batch_size, bands, timestamps):
+def get_data_loader(grid, batch_size, bands, timestamps, shuffle=True):
     '''
     Args:
         grid - A single WSTATT data sample (eg. T11SKA_2018_0_0) as a string
@@ -165,7 +165,7 @@ def get_data_loader(grid, batch_size, bands, timestamps):
     return DataLoader(
         dataset=data,
         batch_size=batch_size,
-        shuffle=True,
+        shuffle=shuffle,
         num_workers=4,
         persistent_workers=True,
         drop_last=False
