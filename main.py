@@ -23,6 +23,8 @@ from val import validate_epoch
 from test import test_model_preds
 
 def train_model():
+    best_val_loss = float("inf")
+
     # --- Initialize For Use During Training/Validation Loop ---
     criterion = torch.nn.CrossEntropyLoss(
         ignore_index=unknown_class
@@ -126,8 +128,6 @@ if __name__ == "__main__":
     
     train_loss = []
     val_loss = []
-
-    best_val_loss = float("inf")
 
     # --- Early Stopping Variables ---
     patience = 8
