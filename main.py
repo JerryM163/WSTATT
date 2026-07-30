@@ -84,6 +84,32 @@ def train_model():
     torch.save(model.state_dict(), model_file)
     print("Training Complete, MODEL SAVED")
 
+def val_model():
+    criterion = torch.nn.CrossEntropyLoss(
+        ignore_index=unknown_class
+    )
+    optimizer = torch.optim.Adam(
+        model.parameters(),
+        lr=learning_rate
+    )
+
+    epoch_val_loss = validate_epoch(
+        epoch=0,
+        model=model,
+        unknown_class=unknown_class,
+        optim=optimizer,
+        criterion=criterion,
+        val_dataset=val_dataset,
+        batch_size=batch_size,
+        timestamps=timestamps,
+        threshold=threshold,
+        class_names=class_names,
+        labels_list=labels_list,
+        bands=bands,
+    )
+
+    print("Validation Complete")
+
 def test_model():
     test_model_preds(
         model=model,
@@ -92,6 +118,8 @@ def test_model():
         timestamps=timestamps,
         bands=bands,
     )
+
+    print("Testing Complete")
 
 if __name__ == "__main__":
     # --- Model Variables ---
@@ -190,12 +218,14 @@ if __name__ == "__main__":
     else:
         print(f"{model} COMPLETE")
 
-    loop = int(input("Are you training or testing (0 or 1)?: "))
+    loop = int(input("Are you training/validating/testing (0/1/2)?: "))
 
     match loop:
         case 0:
             train_model()
         case 1:
+            val_model()
+        case 2:
             test_model()
         case _:
             print("INVALID MODE selected, please enter 0 or 1!")
