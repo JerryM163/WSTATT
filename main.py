@@ -110,17 +110,6 @@ def val_model():
 
     print("Validation Complete")
 
-def test_model():
-    test_model_preds(
-        model=model,
-        test_dataset=test_dataset,
-        batch_size=batch_size,
-        timestamps=timestamps,
-        bands=bands,
-    )
-
-    print("Testing Complete")
-
 if __name__ == "__main__":
     # --- Model Variables ---
     model_choice = None # Chosen by the user 
@@ -226,7 +215,7 @@ if __name__ == "__main__":
         case 1:
             val_model()
         case 2:
-            test_model()
+            test_model_preds()
         case _:
             print("INVALID MODE selected, please enter 0 or 1!")
         
