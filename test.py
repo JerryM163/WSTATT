@@ -114,7 +114,25 @@ def test_model_preds(model, test_dataset, batch_size, timestamps, bands=[]):
     plt.show()
 
     if isinstance(model, STNET):
-        print(attn[0])
-        print(attn[1])
-        print(attn[3])
+        alpha1 = attn[0]
+        alpha2 = attn[1]
+        alpha3 = attn[2]
+
+        plt.figure(figsize=(8,4))
+
+        a1 = alpha1.mean(dim=0).mean(dim=0)
+        a2 = alpha2.mean(dim=0).mean(dim=0)
+        a3 = alpha3.mean(dim=0).mean(dim=0)
+
+        plt.plot(a1.cpu(), label="32×32")
+        plt.plot(a2.cpu(), label="16×16")
+        plt.plot(a3.cpu(), label="8×8")
+
+        plt.legend()
+        plt.xlabel("Timestamp")
+        plt.ylabel("Attention Weight")
+        plt.title("Temporal Attention")
+
+        plt.show()
+
 
