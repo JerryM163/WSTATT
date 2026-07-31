@@ -118,6 +118,10 @@ def test_model_preds(model, test_dataset, batch_size, timestamps, bands=[]):
         alpha2 = attn[1]
         alpha3 = attn[2]
 
+        print(alpha1.shape)
+        print(alpha2.shape)
+        print(alpha3.shape)
+
         plt.figure(figsize=(8,4))
 
         a1 = alpha1.mean(dim=0).mean(dim=0)
