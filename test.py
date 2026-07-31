@@ -12,6 +12,7 @@ from pathlib import Path
 from Utils.device import device
 from Utils.data import get_data_loader
 from Models.statt import STATT, WSTATT
+from main import STNET
 
 class_color_list = ['#ffd300','#ff2626','#00a8e2','#ffff00','#e2007c','#a57000','#d6d600','#a50000','#ffcc66','#f2a377','#ff00ff','#704489','#ffff7c',
                 '#00a582','#e8d6af','#00ff8c','#ff6666','#334933','#af9970','#ffa5e2','#a5f28c','#ccbfa3','#bfbf77','#93cc93','#93cc93','#93cc93',
@@ -60,6 +61,8 @@ def test_model_preds(model, test_dataset, batch_size, timestamps, bands=[]):
             with torch.no_grad():
                 if isinstance(model, WSTATT):
                     out = model(image_tensor, weather_tensor)
+                elif isinstance(model, STNET):
+                    out, attn = model(image_tensor)
                 else:
                     out = model(image_tensor)
             
@@ -109,3 +112,9 @@ def test_model_preds(model, test_dataset, batch_size, timestamps, bands=[]):
     plt.tight_layout(pad = 0.1)
     plt.title(f"GROUND TRUTH Labels")
     plt.show()
+
+    if isinstance(model, STNET):
+        print(attn[0])
+        print(attn[1])
+        print(attn[3])
+
