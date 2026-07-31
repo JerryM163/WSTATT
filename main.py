@@ -1,6 +1,8 @@
 import os
 import sys
 
+from torch import optim
+
 # Drop the cluster's default library injection tracking completely
 os.environ.pop("LD_LIBRARY_PATH", None)
 
@@ -13,10 +15,111 @@ import torch
 import numpy as np
 
 from Models.statt import STATT, WSTATT
+from Models.stnet import STNET
 
 from Utils.early_stopper import EarlyStopper
 from train import train_epoch
 from val import validate_epoch
+from test import test_model_preds
+
+def train_model():
+    best_val_loss = float("inf")
+
+    # --- Initialize For Use During Training/Validation Loop ---
+    criterion = torch.nn.CrossEntropyLoss(
+        ignore_index=unknown_class
+    )
+    optimizer = torch.optim.Adam(
+        model.parameters(),
+        lr=learning_rate
+    )
+    early_stopper = EarlyStopper(
+        patience=patience, 
+        min_delta=min_delta, 
+        warmup_epochs=warmup_epochs)
+    print(f"Early Stopper Created with PATIENCE: {patience} and MAX EPOCHS: {max_epochs}")
+
+    torch.autograd.set_detect_anomaly(True, check_nan=False)
+
+    for epoch in np.arange(max_epochs):
+        epoch_train_loss = train_epoch(
+            epoch=epoch,
+            model=model,
+            optim=optimizer,
+            criterion=criterion,
+            dataset=train_dataset,
+            batch_size=batch_size,
+            timestamps=timestamps,
+            bands=bands,
+        )       
+
+        train_loss.append(epoch_train_loss)
+
+        epoch_val_loss = validate_epoch(
+            epoch=epoch,
+            model=model,
+            unknown_class=unknown_class,
+            optim=optimizer,
+            criterion=criterion,
+            val_dataset=val_dataset,
+            batch_size=batch_size,
+            timestamps=timestamps,
+            threshold=threshold,
+            class_names=class_names,
+            labels_list=labels_list,
+            bands=bands,
+        )
+        
+        # Saves the model with its current parameters when its epoch_val_loss is less than the best_val_loss
+        if epoch_val_loss < best_val_loss:
+            best_val_loss = epoch_val_loss
+            torch.save(model.state_dict(), model_file)
+            print(f"NEW BEST validation loss: {best_val_loss:.4f}, MODEL SAVED")
+        val_loss.append(epoch_val_loss)
+
+        if early_stopper.early_stop(epoch_val_loss):
+            print(f"Early Stopping Activated at EPOCH {epoch+1}")
+            break
+        
+    torch.save(model.state_dict(), model_file)
+    print("Training Complete, MODEL SAVED")
+
+def val_model():
+    criterion = torch.nn.CrossEntropyLoss(
+        ignore_index=unknown_class
+    )
+    optimizer = torch.optim.Adam(
+        model.parameters(),
+        lr=learning_rate
+    )
+
+    epoch_val_loss = validate_epoch(
+        epoch=0,
+        model=model,
+        unknown_class=unknown_class,
+        optim=optimizer,
+        criterion=criterion,
+        val_dataset=val_dataset,
+        batch_size=batch_size,
+        timestamps=timestamps,
+        threshold=threshold,
+        class_names=class_names,
+        labels_list=labels_list,
+        bands=bands,
+    )
+
+    print("Validation Complete")
+
+def test_model():
+    test_model_preds(
+        model=model,
+        test_dataset=test_dataset,
+        batch_size=batch_size,
+        timestamps=timestamps,
+        bands=bands,
+    )
+
+    print("Testing Complete")
 
 if __name__ == "__main__":
     # --- Model Variables ---
@@ -40,6 +143,7 @@ if __name__ == "__main__":
 
     train_dataset = np.load(r"../WSTATT_DATA/DISTRIBUTION/T11SKA/train_set_T11SKA_DISTRI1.npy").tolist()
     val_dataset = np.load(r"../WSTATT_DATA/DISTRIBUTION/T11SKA/validation_set_T11SKA_DISTRI1.npy").tolist()
+    test_dataset = np.load(r"../WSTATT_DATA/DISTRIBUTION/T11SKA/test_set_T11SKA_DISTRI1.npy").tolist()
 
     batch_size = 16
 
@@ -54,19 +158,21 @@ if __name__ == "__main__":
     val_loss = []
 
     # --- Early Stopping Variables ---
-    patience = 3
-    min_delta = 0.05
+    patience = 8
+    min_delta = 0.001
+    warmup_epochs = 10
     
     print("########## BUILDING MODELS ##########")
     # Get which model the user chooses
     print("## Choosing Your Model ##")
-    while model_choice != "w" and model_choice != "s":
-        model_choice = input("What model are you using (W)STATT/(S)TATT:? ").strip().lower()
+    model_choice = input("What model are you using (W)STATT/(S)TATT:? ").strip().lower()
 
     if model_choice == "w":
         print("WSTATT Selected!")
-    else:
+    elif model_choice == "s":
         print("STATT Selected!")
+    else:
+        print("STNET Selected!")
     
     # Get the number of timestamps the user is testing with
     print("## Choosing Your Timestamps ##")
@@ -80,6 +186,7 @@ if __name__ == "__main__":
         bands = input("What bands of weather do you need (Ex. 0 2 4 5)?: ")
         bands = bands.split()
         bands = [int(band) for band in bands]
+        bands.sort()
 
         in_channels_weather = len(bands)
         
@@ -89,14 +196,20 @@ if __name__ == "__main__":
             in_channels_w=in_channels_weather,
             out_channels=out_channels,
         )
-        model_file = f"Wstatt-{timestamps}-{bands.sort().join("-")}.pt"
-    else:
+        model_file = f"Wstatt-{timestamps}-{"-".join([str(band) for band in bands])}.pt"
+    elif model_choice == "s":
         # Create the STATT model
         model = STATT(
             in_channels=in_channels,
             out_channels=out_channels,
         )
         model_file = f"Statt-{timestamps}.pt"
+    else:
+        model = STNET(
+            in_channels=in_channels,
+            out_channels=out_channels,
+        )
+        model_file = f"Stnet-{timestamps}.pt"
 
     # Load the model if a file already exists in the same directory
     if os.path.isfile(model_file):
@@ -105,44 +218,17 @@ if __name__ == "__main__":
     else:
         print(f"{model} COMPLETE")
 
-    early_stopper = EarlyStopper(patience, min_delta)
-    print(f"Early Stopper Created with PATIENCE: {patience} and MAX EPOCHS: {max_epochs}")
+    loop = int(input("Are you training/validating/testing (0/1/2)?: "))
 
-    for epoch in np.arange(max_epochs):
-        epoch_train_loss = train_epoch(
-            epoch=epoch,
-            model=model,
-            unknown_class=unknown_class,
-            learning_rate=learning_rate,
-            dataset=train_dataset,
-            batch_size=batch_size,
-            timestamps=timestamps,
-            bands=bands,
-        )
-        # Saves the model with its current parameters when its epoch_train_loss is less than the previous epoch
-        if(len(train_loss)==0 or epoch_train_loss < train_loss[-1]):
-            torch.save(model.state_dict(), model_file)            
-        train_loss.append(epoch_train_loss)
-
-        epoch_val_loss = validate_epoch(
-            epoch=epoch,
-            model=model,
-            unknown_class=unknown_class,
-            learning_rate=learning_rate,
-            val_dataset=val_dataset,
-            batch_size=batch_size,
-            timestamps=timestamps,
-            threshold=threshold,
-            class_names=class_names,
-            labels_list=labels_list,
-            bands=bands,
-        )
-        val_loss.append(epoch_val_loss)
-
-        if early_stopper.early_stop(epoch_val_loss):
-            print(f"Early Stopped Activated at EPOCH {epoch+1}")
-            break
+    match loop:
+        case 0:
+            train_model()
+        case 1:
+            val_model()
+        case 2:
+            test_model()
+        case _:
+            print("INVALID MODE selected, please enter 0 or 1!")
         
-    print("Model COMPLETE")
 
     

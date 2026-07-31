@@ -1,21 +1,49 @@
-# WSTATT Crop Classification Notebooks
+# AI4Earth 2026: WSTATT
 
-This repository contains three Jupyter notebooks for exploring satellite and weather data and running crop classification experiments using STATT and WSTATT models.
-
-Preprocessed data is present at: https://drive.google.com/drive/folders/1HSUD74s6N7xoIyRlrflxsV5nZ4mnEFTX?usp=drive_link
+This repository contains the project files for the WSTATT group as a part of the University of Minnesota's AI4Earth research program in 2026.
 
 ## Repository Contents
 
 ```text
 .
-├── Explore_data.ipynb
-├── Explore_STATT.ipynb
-└── Explore_WSTATT.ipynb
+├── Models/
+|    ├── statt.py
+|    └── stnet.py
+├── References/ (Jupyter notebooks from the original WSTATT repository)
+|    ├── Explore_data.ipynb
+|    ├── Explore_STATT.ipynb
+|    └── Explore_WSTATT.ipynb
+├── Results/
+|    ├── Predictions/ (contains pngs of different models' predicted segmentation masks)
+|    ├── SavedModels/ (trained models saved as pt files if you want to see how they predict)
+|    └── AI4EarthWstatt.pptx (final slideshow presented at the end of the program)
+├── Utils/
+|    ├── data.py
+|    ├── device.py
+|    ├── early_stopper.py
+|    └── plot_sample.py
+├── main.py
+├── test.py
+├── train.py
+└── val.py
 ```
 
-## Overview
+# Models
 
-This repository is organized into three notebooks:
+```statt.py``` contains baseline STATT and WSTATT crop classification models as outlined in their original papers.
+
+1. STATT - [Attention-augmented Spatio-Temporal Segmentation for Land Cover Mapping](https://arxiv.org/pdf/2105.02963)
+
+2. WSTATT - [Combining Satellite and Weather Data for Crop Type Mapping](https://arxiv.org/pdf/2401.15875)
+
+```stnet.py``` contains our custom transformer-based crop classification model.
+
+# References
+
+For more info on the notebooks in particular, visit the original WSTATT repository where these were created:
+
+https://github.com/praveen-ravirathinam/WSTATT
+
 
 1. `Explore_data.ipynb`  
    Used for exploring the dataset, including satellite images, crop labels, eroded labels, and weather variables.
@@ -26,78 +54,55 @@ This repository is organized into three notebooks:
 3. `Explore_WSTATT.ipynb`  
    Implements and tests the WSTATT model, which extends STATT by adding weather information along with satellite imagery.
 
-## Notebook Descriptions
+# Results
 
-### Explore_data.ipynb
+Folder containing our trained models and final predictions at the end of the program.
 
-This notebook is used for data exploration and visualization.
+# Utils
 
-It includes:
+```data.py``` holds all the functions required for preparing the data to be loaded into the models
 
-- Loading satellite image arrays
-- Checking data shapes and dimensions
-- Visualizing Sentinel-2 imagery
-- Visualizing crop label maps
-- Comparing satellite imagery with crop labels
-- Exploring eroded labels
-- Exploring weather variables over time
+```device.py``` contains a global variable that informs all other dependent files whether *cuda* is available
 
-Run this notebook first to understand the dataset format.
+```early_stopper.py``` outlines an Early Stopper class that improves model training
 
-### Explore_STATT.ipynb
+```plot_sample.py``` contains many useful tools for visualizations of a sample satellite grid
 
-This notebook implements the STATT model.
+# Model Training Loop
 
-STATT stands for Spatio-Temporal Attention Network. It uses satellite image sequences collected over time to perform crop classification.
+```main.py``` central loop that prompts the user to initialize a model then trains and validates it until either the max number of epochs is reached or the early stopper activates
 
-The notebook includes:
+```train.py``` trains a model for a single epoch and saves its losses
 
-- Loading satellite and label data
-- Creating image patches
-- Defining the STATT model architecture
-- Training the model
-- Saving and loading model weights
-- Testing the model
-- Evaluating classification performance
+```val.py``` validates a model for a single epoch, saves it losses, and drafts a classification report
 
-### Explore_WSTATT.ipynb
+```test.py``` allows you to visualize a trained model's performance
 
-This notebook implements the WSTATT model.
+# Dataset
 
-WSTATT extends STATT by including weather data along with satellite imagery.
+Preprocessed data is present at: https://drive.google.com/drive/folders/1HSUD74s6N7xoIyRlrflxsV5nZ4mnEFTX?usp=drive_link
 
-The notebook includes:
+The dataset contains satellite imagery, weather data, and crop labels.
 
-- Loading satellite, weather, and label data
-- Creating satellite and weather input patches
-- Defining the WSTATT model architecture
-- Training the model
-- Saving and loading model weights
-- Testing the model
-- Evaluating classification performance
-
-## Dataset
-
-The notebooks expect the dataset to contain satellite imagery, weather data, and crop labels.
-
-The expected dataset folders are:
+The dataset structure should be:
 
 ```text
-CalCrop_Data/
-├── Satellite/
-├── Weather/
-├── Label/
-├── Label_Eroded/
-└── Model/
+WSTATT_DATA/
+├── DISTRIBUTION/
+|    └── T11SKA/
+|         ├── test_set_T11SKA_DISTRI1.npy
+|         ├── train_set_T11SKA_DISTRI1.npy
+|         └── validation_set_T11SKA_DISTRI1.npy
+├── LABEL_DATA/
+|    └── NUMPY/
+|         ├── COMBINED_LABELS/
+|         └── ERODED_LABELS/
+├── LABEL_MAPS/
+├── SATELLITE/
+|    └── NUMPY/
+└── WEATHER/
+     └── DAYMET/
 ```
-
-The notebooks are currently written for Google Colab and use Google Drive paths such as:
-
-```python
-/content/drive/MyDrive/CalCrop_Data/
-```
-
-If running locally or using a different folder structure, update the paths in the notebooks.
 
 ## Data Format
 
@@ -107,74 +112,21 @@ Satellite data is stored as NumPy arrays with the format:
 [timesteps, channels, height, width]
 ```
 
-The notebooks use Sentinel-2 satellite bands over multiple time steps.
-
 Label data is stored as 2D NumPy arrays with the format:
 
 ```text
 [height, width]
 ```
 
-Weather data is used in the WSTATT notebook and includes variables such as:
+Weather data includes variables such as:
 
 ```text
 dayl, prcp, srad, swe, tmax, tmin, vp
 ```
 
-## Requirements
-
-The notebooks are designed to run in Google Colab.
-
-Main libraries used:
-
-```text
-numpy
-matplotlib
-torch
-scikit-learn
-google.colab
-```
-
-To install the required Python packages locally, use:
-
-```bash
-pip install numpy matplotlib torch scikit-learn
-```
-
-If running outside Google Colab, remove or replace the following lines:
-
-```python
-from google.colab import drive
-drive.mount('/content/drive')
-```
-
-Then update the dataset paths manually.
-
-## How to Run
-
-Recommended order:
-
-1. Open `Explore_data.ipynb`
-2. Mount Google Drive or update the dataset path
-3. Run the cells to inspect the dataset
-4. Open `Explore_STATT.ipynb`
-5. Train and evaluate the STATT model
-6. Open `Explore_WSTATT.ipynb`
-7. Train and evaluate the WSTATT model
-
-## Model Output
-
-The training notebooks save and load model weights using a file such as:
-
-```text
-Model.pt
-```
-
-Make sure the model path is correct before loading saved weights.
-
 ## Crop Classes
 
-The notebooks use multiple crop and land-cover classes, including crops such as corn, cotton, rice, wheat, tomatoes, grapes, almonds, pistachio, alfalfa, and others.
+The project uses multiple crop and land-cover classes, including crops such as corn, cotton, rice, wheat, tomatoes, grapes, almonds, pistachio, alfalfa, and others.
 
 Unknown or ignored pixels are represented using:
 
@@ -184,22 +136,15 @@ unknown_class = 100
 
 These pixels are ignored during training and evaluation.
 
-## Notes
-
-- These notebooks are intended for exploration and experimentation.
-- GPU acceleration is recommended for model training.
-- STATT uses satellite imagery only.
-- WSTATT uses both satellite imagery and weather data.
-- Dataset paths may need to be modified before running the notebooks.
-- The notebooks use patch-based training for crop classification.
-
 ## Acknowledgement
 
 This repository is prepared for experiments with STATT and WSTATT-style spatio-temporal crop classification using satellite imagery and weather data.
 
 ## Citation
 
-If you use this repository, please cite the following papers:
+This repository was based off of Praveen Ravirathinam's WSTATT repository, containing 3 Jupyter Notebooks we used as references.
+
+That repository also cites the following 2 papers which the provided baseline models were based off of: 
 
 ```bibtex
 @inproceedings{ravirathinam2024wstatt,
