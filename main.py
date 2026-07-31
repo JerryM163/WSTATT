@@ -1,5 +1,7 @@
 import os
 import sys
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 from torch import optim
 
@@ -231,4 +233,42 @@ if __name__ == "__main__":
             print("INVALID MODE selected, please enter 0 or 1!")
         
 
+    #Plotting the Training & Validation loss
+    sns.set_theme()
+
+    epochs_completed = range(1, len(train_loss) + 1)
+
+    plt.figure(figsize=(8, 5))
+
+    sns.lineplot(
+        x=epochs_completed,
+        y=train_loss,
+        marker="o",
+        label="Training Loss"
+    )
+
+    sns.lineplot(
+        x=epochs_completed,
+        y=val_loss,
+        marker="o",
+        label="Validation Loss"
+    )
+
+    plt.title(f"Training and Validation Loss: {model_file}")
+    plt.xlabel("Epoch")
+    plt.ylabel("Cross-Entropy Loss")
+    plt.legend()
+    plt.tight_layout()
+
+    plot_file = model_file.replace(".pt", "_loss_plot.png")
+    plt.savefig(plot_file, dpi=300)
+    print(f"Loss plot saved as {plot_file}")
+    plt.show()
+
+    #Saving history for each run
+    np.savez(
+        model_file.replace(".pt", "_history.npz"),
+        train_loss=np.array(train_loss),
+        val_loss=np.array(val_loss)
+    )
     
