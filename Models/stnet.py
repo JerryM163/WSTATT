@@ -316,8 +316,10 @@ class STNET(torch.nn.Module):
         # --- Output layer (class prediction per pixel) ---
         out = self.out(upconv1)  # Output: (batches,33,32,32)
 
+        attention = [alpha1,alpha2,alpha3]
+
         # Return output from classifier layer
-        return out
+        return out, attention
 
     def __str__(self):
         return "STNet Model"
