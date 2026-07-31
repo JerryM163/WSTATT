@@ -135,4 +135,16 @@ def test_model_preds(model, test_dataset, batch_size, timestamps, bands=[]):
 
         plt.show()
 
+        plt.figure(figsize=(8,4))
+
+        july = 6
+
+        heatmap = alpha1[:, july].reshape(32, 32)
+
+        plt.imshow(heatmap.cpu(), cmap="viridis")
+        plt.colorbar(label="Attention")
+        plt.title("Attention at July")
+
+        plt.show()
+
 
